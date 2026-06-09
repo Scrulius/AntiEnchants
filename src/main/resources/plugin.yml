@@ -3,16 +3,16 @@ version: '${version}'
 main: dev.scrulius.antienchants.AntiEnchantsPlugin
 api-version: '1.21'
 author: Scrulius
-description: Bloquea encantamientos no deseados en todo el servidor (sucesor de AntiMending).
+description: Blocks unwanted enchantments server-wide (successor to AntiMending).
 
 commands:
   antienchants:
-    description: Comando principal de AntiEnchants.
+    description: AntiEnchants main command.
     usage: /antienchants reload
     aliases: [ae, antienchant]
     permission: antienchants.admin
 
 permissions:
   antienchants.admin:
-    description: Permite recargar la configuración de AntiEnchants.
+    description: Allows reloading the AntiEnchants configuration.
     default: op

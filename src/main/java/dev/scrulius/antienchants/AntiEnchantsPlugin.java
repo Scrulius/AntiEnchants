@@ -34,13 +34,13 @@ public final class AntiEnchantsPlugin extends JavaPlugin {
                 "command 'antienchants' missing from plugin.yml");
         cmd.setExecutor(new AntiEnchantsCommand(this));
 
-        getLogger().info("AntiEnchants habilitado. " + config.bannedKeyCount()
-                + " encantamiento(s) en la lista de bloqueo.");
+        getLogger().info("AntiEnchants enabled. " + config.bannedKeyCount()
+                + " enchantment(s) in the blocklist.");
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("AntiEnchants deshabilitado.");
+        getLogger().info("AntiEnchants disabled.");
     }
 
     /** @return the cached, reloadable config view */

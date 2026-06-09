@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * {@code /antienchants reload} — re-reads {@code config.yml} without a restart.
+ * {@code /antienchants reload} - re-reads {@code config.yml} without a restart.
  * Permission: {@code antienchants.admin} (default op).
  */
 public final class AntiEnchantsCommand implements TabExecutor {
@@ -28,17 +28,17 @@ public final class AntiEnchantsCommand implements TabExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
         if (!sender.hasPermission("antienchants.admin")) {
-            sender.sendMessage(Component.text("No tienes permiso para usar este comando.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("You don't have permission to use this command.", NamedTextColor.RED));
             return true;
         }
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             plugin.config().reload();
-            sender.sendMessage(Component.text("AntiEnchants recargado. ", NamedTextColor.GREEN)
-                    .append(Component.text(plugin.config().bannedKeyCount() + " encantamiento(s) en la lista.",
+            sender.sendMessage(Component.text("AntiEnchants reloaded. ", NamedTextColor.GREEN)
+                    .append(Component.text(plugin.config().bannedKeyCount() + " enchantment(s) in the blocklist.",
                             NamedTextColor.GRAY)));
             return true;
         }
-        sender.sendMessage(Component.text("Uso: /antienchants reload", NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("Usage: /antienchants reload", NamedTextColor.YELLOW));
         return true;
     }
 
