@@ -1,0 +1,56 @@
+# ─────────────────────────────────────────────
+#  AntiEnchants — configuración
+#  Sucesor de AntiMending: bloquea encantamientos no deseados en TODO el server.
+#  Tras editar, usa /antienchants reload (no hace falta reiniciar).
+# ─────────────────────────────────────────────
+
+# Encantamientos PROHIBIDOS: se eliminan de CUALQUIER ítem (inventarios, ítems
+# recogidos, pesca, loot, drops de mobs) para que no existan en el servidor.
+banned-enchantments:
+  enabled: true
+
+  # Keys a bloquear. 'mending' = minecraft:mending. Admite keys completas
+  # (namespace:key), también de plugins (p.ej. ecoenchants:telekinesis).
+  keys:
+    - mending
+
+  # Bloquea TODAS las maldiciones (vanishing_curse, binding_curse y cualquier
+  # maldición de plugins) sin tener que listarlas una a una.
+  ban-all-curses: false
+
+  # Purga el inventario del jugador al entrar / abrir un inventario / clickear.
+  # El strip del click/creativo se difiere 1 tick para no romper el tracking de
+  # Bukkit ni dupear.
+  purge-player-inventories: true
+
+  # Bloquea PlayerItemMendEvent: la XP NUNCA repara durabilidad (el efecto de
+  # mending), aunque algún ítem se colara con el encantamiento.
+  block-xp-repair: true
+
+  # Limpia los ítems al recogerlos del suelo.
+  strip-on-pickup: true
+
+  # Limpia lo que se pesca.
+  strip-on-fish: true
+
+  # Limpia el loot generado (cofres de estructuras, pesca por loot-table, etc.).
+  strip-from-loot: true
+
+  # Limpia el equipo encantado que sueltan los mobs al morir.
+  strip-mob-drops: true
+
+# Control de tradeos de aldeano. Cancelar la adquisición impide que la receta
+# llegue siquiera a existir en el aldeano.
+villager-trades:
+  enabled: true
+
+  # No adquieren NINGÚN trade cuyo resultado sea un libro (libro, libro encantado,
+  # libro escribible/escrito, libro de conocimiento).
+  block-book-trades: true
+
+  # No adquieren trades cuyo resultado lleve un encantamiento bloqueado (cubre
+  # también resultados que NO sean libros).
+  block-banned-enchant-trades: true
+
+# Mundos donde NO aplicar nada (lista de nombres). Vacío = aplicar en todos.
+disabled-worlds: []
