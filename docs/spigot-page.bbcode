@@ -1,61 +1,165 @@
 [CENTER][SIZE=7][COLOR=#9B59B6][B]AntiEnchants[/B][/COLOR][/SIZE]
-[SIZE=4][COLOR=#95A5A6][I]Ban, cap and control enchantments — server-wide.[/I][/COLOR][/SIZE]
-
-[COLOR=#E74C3C][B]Ban[/B][/COLOR]  ·  [COLOR=#F1C40F][B]Cap[/B][/COLOR]  ·  [COLOR=#2ECC71][B]Exempt[/B][/COLOR]  ·  [COLOR=#3498DB][B]Compensate[/B][/COLOR]  ·  [COLOR=#9B59B6][B]Bypass[/B][/COLOR][/CENTER]
+[SIZE=4][COLOR=#95A5A6][I]Ban, cap and control enchantments — server-wide.[/I][/COLOR][/SIZE][/CENTER]
 
 Born as [I]AntiMending[/I], now a general-purpose enchantment control plugin: decide which enchantments exist on your server, at which level, on which items, in which worlds — and who is allowed to skip the rules.
 
-[SIZE=5][COLOR=#E67E22][B]Features[/B][/COLOR][/SIZE]
+[SIZE=5][COLOR=#9B59B6][B]Features[/B][/COLOR][/SIZE]
 [LIST]
-[*][COLOR=#E74C3C][B]Ban any enchantment[/B][/COLOR] (default: mending). Removed from player inventories, pickups, fishing, chest loot and mob drops — it can't exist on your server.
-[*][COLOR=#F1C40F][B]Level caps[/B][/COLOR] — don't ban it, cap it. [ICODE]sharpness: 3[/ICODE] reduces every Sharpness IV/V to III automatically.
-[*][COLOR=#2ECC71][B]Item whitelist[/B][/COLOR] — exempt item types from all checks, with wildcards: [ICODE]exempt-items: [ "*_SWORD", "BOW" ][/ICODE]
-[*][COLOR=#3498DB][B]Compensation[/B][/COLOR] (optional) — when an enchantment is stripped, the player gets something back (XP bottles, emeralds, anything), per enchantment or globally.
-[*][COLOR=#9B59B6][B]Permission bypasses[/B][/COLOR] — [ICODE]antienchants.bypass.mending[/ICODE] for donor ranks, staff or quest winners. [ICODE]antienchants.bypass.*[/ICODE] for everything. Nodes default to FALSE, so ops never bypass by accident.
-[*][COLOR=#1ABC9C][B]Per-world rules[/B][/COLOR] — ban fortune only in your resource world, cap efficiency only in the mining world. Plus [ICODE]disabled-worlds[/ICODE] to turn the plugin off entirely somewhere.
-[*][COLOR=#E67E22][B]Blocks at the source[/B][/COLOR] — enchanting table results and anvil/grindstone previews are cleaned [B]before[/B] the player pays.
-[*][COLOR=#C0392B][B]Blocks mending's effect[/B][/COLOR] — XP never repairs durability, even if an item slips through.
-[*][COLOR=#8E44AD][B]Curses[/B][/COLOR] — [ICODE]ban-all-curses: true[/ICODE] blocks every curse at once (vanilla + other plugins).
-[*][COLOR=#27AE60][B]Villager control[/B][/COLOR] — stop librarians from selling enchanted books (or any book), and any trade carrying a banned/over-cap enchantment.
-[*][COLOR=#2980B9][B]Player feedback[/B][/COLOR] — configurable MiniMessage messages when items are stripped, capped or compensated. Empty = silent.
-[*][COLOR=#7F8C8D][B]Audit log[/B][/COLOR] (optional) — every strip goes to [ICODE]strips.log[/ICODE]: when, who, where, what.
-[*][COLOR=#16A085][B]Other plugins' enchantments[/B][/COLOR] — keys accept any namespace ([ICODE]ecoenchants:telekinesis[/ICODE]).
+[*][B]Ban any enchantment[/B] (default: mending). Removed from player inventories, pickups, fishing, chest loot and mob drops — it can't exist on your server.
+[*][B]Level caps[/B] — don't ban it, cap it. [ICODE]sharpness: 3[/ICODE] reduces every Sharpness IV/V to III automatically.
+[*][B]Item whitelist[/B] — exempt item types from all checks, with wildcards: [ICODE]exempt-items: [ "*_SWORD", "BOW" ][/ICODE]
+[*][B]Compensation[/B] (optional) — when an enchantment is stripped, the player gets something back (XP bottles, emeralds, anything), per enchantment or globally.
+[*][B]Permission bypasses[/B] — [ICODE]antienchants.bypass.mending[/ICODE] for donor ranks, staff or quest winners. [ICODE]antienchants.bypass.*[/ICODE] for everything. Nodes default to FALSE, so ops never bypass by accident.
+[*][B]Per-world rules[/B] — ban fortune only in your resource world, cap efficiency only in the mining world. Plus [ICODE]disabled-worlds[/ICODE] to turn the plugin off entirely somewhere.
+[*][B]Blocks at the source[/B] — enchanting table results and anvil/grindstone previews are cleaned before the player pays.
+[*][B]Blocks mending's effect[/B] — XP never repairs durability, even if an item slips through.
+[*][B]Curses[/B] — [ICODE]ban-all-curses: true[/ICODE] blocks every curse at once (vanilla + other plugins).
+[*][B]Villager control[/B] — stop librarians from selling enchanted books (or any book), and any trade carrying a banned/over-cap enchantment.
+[*][B]Player feedback[/B] — configurable MiniMessage messages when items are stripped, capped or compensated. Empty = silent.
+[*][B]Audit log[/B] (optional) — every strip goes to [ICODE]strips.log[/ICODE]: when, who, where, what.
+[*][B]Other plugins' enchantments[/B] — keys accept any namespace ([ICODE]ecoenchants:telekinesis[/ICODE]).
 [/LIST]
 
-[SIZE=5][COLOR=#E67E22][B]Commands[/B][/COLOR][/SIZE]  [COLOR=#95A5A6](permission [ICODE]antienchants.admin[/ICODE], alias /ae)[/COLOR]
+[SIZE=5][COLOR=#9B59B6][B]Commands[/B][/COLOR][/SIZE]  [COLOR=#95A5A6](permission [ICODE]antienchants.admin[/ICODE], alias /ae)[/COLOR]
 [LIST]
-[*][ICODE]/ae reload[/ICODE] — [COLOR=#95A5A6]reload the config, no restart.[/COLOR]
-[*][ICODE]/ae list[/ICODE] — [COLOR=#95A5A6]what's banned and capped right now.[/COLOR]
-[*][ICODE]/ae check[/ICODE] — [COLOR=#95A5A6]inspect the item in your hand.[/COLOR]
-[*][ICODE]/ae add <enchant>[/ICODE] / [ICODE]/ae remove <enchant>[/ICODE] — [COLOR=#95A5A6]edit the banlist live (saved to config).[/COLOR]
-[*][ICODE]/ae cap <enchant> <level|off>[/ICODE] — [COLOR=#95A5A6]set or clear a level cap live.[/COLOR]
+[*][ICODE]/ae reload[/ICODE] — reload the config, no restart.
+[*][ICODE]/ae list[/ICODE] — what's banned and capped right now.
+[*][ICODE]/ae check[/ICODE] — inspect the item in your hand.
+[*][ICODE]/ae add <enchant>[/ICODE] / [ICODE]/ae remove <enchant>[/ICODE] — edit the banlist live (saved to config).
+[*][ICODE]/ae cap <enchant> <level|off>[/ICODE] — set or clear a level cap live.
 [/LIST]
 
-[SIZE=5][COLOR=#E67E22][B]Config (excerpt)[/B][/COLOR][/SIZE]
+[SIZE=5][COLOR=#9B59B6][B]Configuration[/B][/COLOR][/SIZE]
+Every feature can be toggled. Updating the jar adds new options to your config automatically — your edited values are never touched, and old configs keep working without regeneration.
+
+[SPOILER="Full config.yml (default)"]
 [CODE=yaml]
+# Banned enchantments: removed from ANY item (inventories, picked-up items,
+# fishing, loot, mob drops) so they can never exist on the server.
 banned-enchantments:
+  enabled: true
+
+  # Keys to block. 'mending' = minecraft:mending. Full keys (namespace:key) are
+  # accepted too, including keys from other plugins (e.g. ecoenchants:telekinesis).
   keys:
     - mending
+
+  # Block ALL curses (vanishing_curse, binding_curse and any plugin curse)
+  # without listing them one by one.
   ban-all-curses: false
-  exempt-items: []          # e.g. [ "*_SWORD", "BOW" ]
 
-level-caps: {}              # e.g. sharpness: 3
+  # Item types that are NEVER touched (no strip, no level cap). Material names,
+  # '*' wildcards allowed. Example: [ "*_SWORD", "*_AXE", "BOW", "TRIDENT" ]
+  exempt-items: []
 
+  # When a stripped enchanted book ends up with no enchantments left, convert it
+  # into a normal book instead of leaving a useless empty enchanted book behind.
+  convert-empty-books: true
+
+  # Purge the player's inventory on join / inventory open / click.
+  purge-player-inventories: true
+
+  # Block PlayerItemMendEvent: XP never repairs durability (mending's effect),
+  # even if an item slips through with the enchantment.
+  block-xp-repair: true
+
+  # Clean items when picked up off the ground.
+  strip-on-pickup: true
+
+  # Clean fished items.
+  strip-on-fish: true
+
+  # Clean generated loot (structure chests, loot-table fishing, etc.).
+  strip-from-loot: true
+
+  # Clean enchanted gear dropped by mobs on death.
+  strip-mob-drops: true
+
+  # Remove banned enchantments (and apply level caps) at the source: the
+  # enchanting table result and the anvil/grindstone result previews.
+  block-at-table: true
+  block-at-anvil: true
+  block-at-grindstone: true
+
+# Level caps: instead of banning outright, cap an enchantment at a maximum
+# level — anything above is automatically reduced (e.g. with 'sharpness: 3',
+# a Sharpness V sword becomes Sharpness III). Same key format as
+# banned-enchantments.keys.
+# Example:
+#   sharpness: 3
+#   protection: 2
+level-caps: {}
+
+# Per-world EXTRA rules, merged ON TOP of the global ones. Worlds not listed
+# here use the global rules only. Useful for resource/mining worlds.
+# Example:
+#   world_resource:
+#     keys:               # banned in that world, in addition to the global list
+#       - fortune
+#     level-caps:         # caps in that world (add to or override the global ones)
+#       efficiency: 4
+per-world: {}
+
+# Compensation: when a banned enchantment is stripped from a player's item,
+# give something back so rare loot doesn't feel wasted. Entries are
+# "MATERIAL:amount", granted once per stripped enchantment.
+# Only player-context strips compensate (inventory purge, pickup, fishing) and
+# never in creative mode; loot/mob-drop strips never do.
 compensation:
   enabled: false
+  # Used unless the enchantment has an override below.
   default:
     - "EXPERIENCE_BOTTLE:4"
-  per-enchant: {}           # e.g. mending: [ "EMERALD:8" ]
+  # Per-enchantment overrides. Example:
+  #   mending:
+  #     - "EMERALD:8"
+  per-enchant: {}
 
-per-world: {}               # extra bans/caps per world
+# Permission bypass: players with 'antienchants.bypass.<key>' keep and use that
+# enchantment (e.g. antienchants.bypass.mending, or
+# antienchants.bypass.ecoenchants.telekinesis for other namespaces).
+# 'antienchants.bypass.*' bypasses everything. All nodes are registered with
+# default FALSE, so ops do NOT bypass by accident.
+permission-bypass:
+  enabled: true
+
+# Player feedback when their items are adjusted (MiniMessage format;
+# empty string = silent). {count} = number of enchantments affected.
+messages:
+  stripped: "<red>{count} banned enchantment(s) were removed from your items."
+  capped: "<yellow>{count} enchantment(s) were reduced to the allowed level."
+  compensated: "<green>You received compensation for the removed enchantment(s)."
+
+# Audit log: appends every player-context strip/cap to
+# plugins/AntiEnchants/strips.log (when, who, where, what was removed).
+audit-log:
+  enabled: false
+  # Rotate to strips.log.1 when the file exceeds this size (KB). 0 = never rotate.
+  max-file-kb: 2048
+
+# Villager trade control. Cancelling on acquire prevents the recipe from ever
+# being added to the villager.
+villager-trades:
+  enabled: true
+
+  # Villagers won't acquire ANY trade whose result is a book (book, enchanted
+  # book, writable/written book, knowledge book).
+  block-book-trades: true
+
+  # Villagers won't acquire trades whose result carries a banned or over-cap
+  # enchantment (covers non-book results too).
+  block-banned-enchant-trades: true
+
+# Worlds where nothing is applied (list of names). Empty = applied everywhere.
+disabled-worlds: []
 [/CODE]
-Everything is config-gated. Updating the jar adds new options to your config automatically — your edited values are never touched, and old configs keep working without regeneration.
+[/SPOILER]
 
-[SIZE=5][COLOR=#E67E22][B]Servers using AntiEnchants[/B][/COLOR][/SIZE]
+[SIZE=5][COLOR=#9B59B6][B]Servers using AntiEnchants[/B][/COLOR][/SIZE]
 [CENTER][IMG]https://bstats.org/signatures/bukkit/AntiEnchants.svg[/IMG][/CENTER]
 [COLOR=#95A5A6]Anonymous stats via bStats — opt-out in [ICODE]plugins/bStats/config.yml[/ICODE].[/COLOR]
 
-[SIZE=5][COLOR=#E67E22][B]Requirements[/B][/COLOR][/SIZE]
+[SIZE=5][COLOR=#9B59B6][B]Requirements[/B][/COLOR][/SIZE]
 Paper (or fork) [B]1.21+[/B]. No dependencies.
 
 Suggestions and bug reports are welcome in the discussion thread.
