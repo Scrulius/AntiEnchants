@@ -125,7 +125,7 @@ class ConfigMergerTest {
     void addsAllNewKeys() {
         ConfigMerger.merge(defaults, user);
 
-        // 1.1.0 additions
+        // Additions since 1.0.0
         assertTrue(user.isList("banned-enchantments.exempt-items"));
         assertTrue(user.getBoolean("banned-enchantments.convert-empty-books"));
         assertTrue(user.getBoolean("banned-enchantments.block-at-table"));
@@ -139,7 +139,6 @@ class ConfigMergerTest {
         assertFalse(user.getString("messages.capped", "").isBlank());
         assertFalse(user.getString("messages.compensated", "").isBlank());
 
-        // 1.2.0 additions
         assertTrue(user.getBoolean("banned-enchantments.block-at-grindstone"));
         assertTrue(user.isConfigurationSection("per-world"));
         assertFalse(user.getBoolean("audit-log.enabled"));

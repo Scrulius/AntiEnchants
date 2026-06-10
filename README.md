@@ -46,7 +46,7 @@ per-world rules, compensation, permission bypasses, villager trade control and a
 Gradle + Java 25, Paper 26.1.2.
 
 ```
-./gradlew.bat shadowJar    # -> build/libs/AntiEnchants-1.2.0.jar (bStats shaded + relocated)
+./gradlew.bat shadowJar    # -> build/libs/AntiEnchants-1.1.0.jar (bStats shaded + relocated)
 ```
 
 ## Config
