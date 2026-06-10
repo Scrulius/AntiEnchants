@@ -1,0 +1,35 @@
+[B]The suggestion update.[/B] Everything asked for in the reviews is here — level caps, an item whitelist, compensation and per-rank bypasses — plus a few things that made sense to build alongside them.
+
+[SIZE=4][COLOR=#9B59B6][B]Don't ban it — control it[/B][/COLOR][/SIZE]
+Until now AntiEnchants had one answer for everything: delete it. Now you choose how hard to hit:
+[LIST]
+[*][B]Level caps[/B] — put [ICODE]sharpness: 3[/ICODE] in [ICODE]level-caps[/ICODE] and every Sharpness IV/V on the server quietly becomes Sharpness III. Applies everywhere the purge does.
+[*][B]Item whitelist[/B] — [ICODE]exempt-items: [ "*_SWORD", "*_AXE", "BOW" ][/ICODE] and the plugin keeps its hands off weapons entirely. Wildcards supported.
+[*][B]Per-world rules[/B] — ban fortune in the resource world only, cap efficiency in the mining world only. Each world merges its own extras on top of the global rules.
+[*][B]Permission bypasses[/B] — [ICODE]antienchants.bypass.mending[/ICODE] for that donor rank or quest reward, [ICODE]antienchants.bypass.*[/ICODE] for staff. Every node defaults to FALSE, so your ops don't skip the rules without you knowing.
+[/LIST]
+
+[SIZE=4][COLOR=#9B59B6][B]Fewer "where did my enchant go?" tickets[/B][/COLOR][/SIZE]
+[LIST]
+[*][B]Players get told[/B] — configurable messages when their items are stripped, capped or compensated. Leave them empty for the old silent behaviour.
+[*][B]Compensation[/B] (off by default) — stripped a banned enchant off someone's rare find? Hand them XP bottles, emeralds, whatever you configure, globally or per enchantment.
+[*][B]Audit log[/B] (off by default) — every strip lands in [ICODE]strips.log[/ICODE] with when, who, where and what. The next "your plugin stole my sword" claim takes ten seconds to settle.
+[*][B]Blocked at the source[/B] — the enchanting table, anvil and grindstone now show clean results BEFORE the player pays, instead of charging first and purging afterwards.
+[*][B]No more dead books[/B] — an enchanted book that loses everything turns into a plain book instead of a useless empty one.
+[/LIST]
+
+[SIZE=4][COLOR=#9B59B6][B]Admin tools[/B][/COLOR][/SIZE]
+[LIST]
+[*][ICODE]/ae list[/ICODE] — what's banned and capped right now.
+[*][ICODE]/ae check[/ICODE] — point it at the item in your hand.
+[*][ICODE]/ae add[/ICODE], [ICODE]/ae remove[/ICODE], [ICODE]/ae cap <key> <level|off>[/ICODE] — edit the rules in-game; everything is written back to config.yml.
+[/LIST]
+
+[SIZE=4][COLOR=#9B59B6][B]Housekeeping[/B][/COLOR][/SIZE]
+[LIST]
+[*]Your config updates itself on startup: new options appear with their comments, your edited values stay untouched. The 1.0.0 upgrade path is covered by automated tests.
+[*]Villager trade blocking now also catches over-cap results, not just banned ones.
+[*]bStats added (anonymous; opt-out in [ICODE]plugins/bStats/config.yml[/ICODE]).
+[/LIST]
+
+No breaking changes: drop the jar in and your old config keeps working.
