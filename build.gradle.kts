@@ -26,6 +26,17 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.69-stable")
     // bStats metrics (shaded + relocated below, as bStats requires).
     implementation("org.bstats:bstats-bukkit:3.2.1")
+
+    // Tests: paper-api again because compileOnly isn't inherited by the test classpath.
+    // YamlConfiguration works without a running server, which is all ConfigMergerTest needs.
+    testImplementation("io.papermc.paper:paper-api:26.1.2.build.69-stable")
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 java {

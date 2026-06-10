@@ -27,7 +27,19 @@ public final class ConfigMerger {
         }
         final YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
                 new InputStreamReader(resource, StandardCharsets.UTF_8));
-        final FileConfiguration current = plugin.getConfig();
+        if (merge(defaults, plugin.getConfig())) {
+            plugin.saveConfig();
+            plugin.getLogger().info("config.yml updated with new options (existing values untouched).");
+        }
+    }
+
+    /**
+     * Copies every key (and its comments) present in {@code defaults} but missing from
+     * {@code current}, leaving existing values alone. Pure (no plugin/server) so it's unit-testable.
+     *
+     * @return whether anything was added
+     */
+    public static boolean merge(@NotNull YamlConfiguration defaults, @NotNull FileConfiguration current) {
         boolean changed = false;
         // getKeys(true) yields parents before children, so sections exist before their leaves.
         for (String path : defaults.getKeys(true)) {
@@ -42,9 +54,6 @@ public final class ConfigMerger {
             current.setComments(path, defaults.getComments(path));
             changed = true;
         }
-        if (changed) {
-            plugin.saveConfig();
-            plugin.getLogger().info("config.yml updated with new options (existing values untouched).");
-        }
+        return changed;
     }
 }
