@@ -1,0 +1,65 @@
+[CENTER][SIZE=7][COLOR=#9B59B6][B]AntiEnchants[/B][/COLOR][/SIZE]
+[SIZE=4][COLOR=#95A5A6][I]Ban, cap and control enchantments — server-wide.[/I][/COLOR][/SIZE]
+
+[COLOR=#E74C3C]⛔ Ban[/COLOR]  ·  [COLOR=#F1C40F]📏 Cap[/COLOR]  ·  [COLOR=#2ECC71]🛡 Exempt[/COLOR]  ·  [COLOR=#3498DB]💰 Compensate[/COLOR]  ·  [COLOR=#9B59B6]🔑 Bypass[/COLOR][/CENTER]
+
+Born as [I]AntiMending[/I], now a general-purpose enchantment control plugin. Decide exactly which enchantments exist on your server, at which level, on which items, in which worlds — and who is allowed to skip the rules.
+
+[SIZE=5][COLOR=#E67E22][B]✦ Features[/B][/COLOR][/SIZE]
+[LIST]
+[*][COLOR=#E74C3C][B]⛔ Ban any enchantment[/B][/COLOR] (default: mending). Removed from player inventories, pickups, fishing, chest loot and mob drops — it simply can't exist on your server.
+[*][COLOR=#F1C40F][B]📏 Level caps[/B][/COLOR] — don't ban it, cap it. [ICODE]sharpness: 3[/ICODE] reduces every Sharpness IV/V to III automatically.
+[*][COLOR=#2ECC71][B]🛡 Item whitelist[/B][/COLOR] — exempt item types from all checks, with wildcards: [ICODE]exempt-items: [ "*_SWORD", "BOW" ][/ICODE]
+[*][COLOR=#3498DB][B]💰 Compensation[/B][/COLOR] (optional) — when an enchantment is stripped, the player gets something back (XP bottles, emeralds, anything), per enchantment or globally. Rare loot never feels wasted.
+[*][COLOR=#9B59B6][B]🔑 Permission bypasses[/B][/COLOR] — [ICODE]antienchants.bypass.mending[/ICODE] for donor ranks, staff or quest winners. [ICODE]antienchants.bypass.*[/ICODE] for everything. Nodes default to FALSE, so ops never bypass by accident.
+[*][COLOR=#1ABC9C][B]🌍 Per-world rules[/B][/COLOR] — ban fortune only in your resource world, cap efficiency only in the mining world. Plus [ICODE]disabled-worlds[/ICODE] to turn the plugin off entirely somewhere.
+[*][COLOR=#E67E22][B]⚒ Blocks at the source[/B][/COLOR] — enchanting table results and anvil/grindstone previews are cleaned [B]before[/B] the player pays.
+[*][COLOR=#C0392B][B]🔧 Mending killer[/B][/COLOR] — blocks the mend effect itself: XP never repairs durability, even if an item slips through.
+[*][COLOR=#8E44AD][B]☠ Curses[/B][/COLOR] — [ICODE]ban-all-curses: true[/ICODE] blocks every curse at once (vanilla + other plugins).
+[*][COLOR=#27AE60][B]🧑‍🌾 Villager control[/B][/COLOR] — stop librarians from selling enchanted books (or any book), and any trade carrying a banned/over-cap enchantment.
+[*][COLOR=#2980B9][B]💬 Player feedback[/B][/COLOR] — configurable MiniMessage messages when items are stripped, capped or compensated. Empty = silent.
+[*][COLOR=#7F8C8D][B]📜 Audit log[/B][/COLOR] (optional) — every strip goes to [ICODE]strips.log[/ICODE]: when, who, where, what. Perfect for "the plugin stole my sword" tickets.
+[*][COLOR=#16A085][B]🔌 Other plugins' enchantments[/B][/COLOR] — keys accept any namespace ([ICODE]ecoenchants:telekinesis[/ICODE]).
+[/LIST]
+
+[SIZE=5][COLOR=#E67E22][B]⌨ Commands[/B][/COLOR][/SIZE]  [COLOR=#95A5A6](permission [ICODE]antienchants.admin[/ICODE], alias /ae)[/COLOR]
+[LIST]
+[*][ICODE]/ae reload[/ICODE] — [COLOR=#95A5A6]reload the config, no restart.[/COLOR]
+[*][ICODE]/ae list[/ICODE] — [COLOR=#95A5A6]what's banned and capped right now.[/COLOR]
+[*][ICODE]/ae check[/ICODE] — [COLOR=#95A5A6]inspect the item in your hand.[/COLOR]
+[*][ICODE]/ae add <enchant>[/ICODE] / [ICODE]/ae remove <enchant>[/ICODE] — [COLOR=#95A5A6]edit the banlist live (saved to config).[/COLOR]
+[*][ICODE]/ae cap <enchant> <level|off>[/ICODE] — [COLOR=#95A5A6]set or clear a level cap live.[/COLOR]
+[/LIST]
+
+[SIZE=5][COLOR=#E67E22][B]⚙ Config (excerpt)[/B][/COLOR][/SIZE]
+[CODE=yaml]
+banned-enchantments:
+  keys:
+    - mending
+  ban-all-curses: false
+  exempt-items: []          # e.g. [ "*_SWORD", "BOW" ]
+
+level-caps: {}              # e.g. sharpness: 3
+
+compensation:
+  enabled: false
+  default:
+    - "EXPERIENCE_BOTTLE:4"
+  per-enchant: {}           # e.g. mending: [ "EMERALD:8" ]
+
+per-world: {}               # extra bans/caps per world
+[/CODE]
+[COLOR=#2ECC71]✔[/COLOR] Everything is config-gated.
+[COLOR=#2ECC71]✔[/COLOR] Updating the jar adds new options to your config automatically — your edited values are never touched.
+[COLOR=#2ECC71]✔[/COLOR] No breaking changes between versions: drop the jar in and your old config keeps working.
+
+[SIZE=5][COLOR=#E67E22][B]📊 Servers using AntiEnchants[/B][/COLOR][/SIZE]
+[CENTER][IMG]https://bstats.org/signatures/bukkit/AntiEnchants.svg[/IMG][/CENTER]
+[COLOR=#95A5A6]Anonymous stats via bStats — opt-out in [ICODE]plugins/bStats/config.yml[/ICODE].[/COLOR]
+
+[SIZE=5][COLOR=#E67E22][B]📦 Requirements[/B][/COLOR][/SIZE]
+Paper (or fork) [B]1.21+[/B]. No dependencies.
+
+[CENTER][COLOR=#9B59B6][B]Found a bug or want a feature?[/B][/COLOR]
+Post in the discussion — this update was built from your suggestions.
+[COLOR=#F1C40F]⭐ If AntiEnchants earned a slot on your server, a review helps a lot![/COLOR][/CENTER]
