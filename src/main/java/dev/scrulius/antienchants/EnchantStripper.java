@@ -56,10 +56,11 @@ public final class EnchantStripper {
      * Exempt item types and bypassed enchantments are left untouched. If a stripped enchanted book
      * ends up empty and {@code convert-empty-books} is on, it becomes a normal book.
      *
-     * @param bypass per-enchantment bypass (player permissions); use {@link #NO_BYPASS} when there is no player
+     * @param worldName world whose rules apply ({@code per-world} extras); {@code null} = global rules
+     * @param bypass    per-enchantment bypass (player permissions); use {@link #NO_BYPASS} when there is no player
      */
     public static @NotNull StripResult strip(@Nullable ItemStack item, @NotNull AntiEnchantsConfig config,
-                                             @NotNull Predicate<Enchantment> bypass) {
+                                             @Nullable String worldName, @NotNull Predicate<Enchantment> bypass) {
         if (item == null || item.isEmpty() || !item.hasItemMeta() || config.isExemptItem(item.getType())) {
             return StripResult.NONE;
         }
@@ -72,11 +73,11 @@ public final class EnchantStripper {
             if (bypass.test(ench)) {
                 continue;
             }
-            if (config.isBanned(ench)) {
+            if (config.isBanned(ench, worldName)) {
                 meta.removeEnchant(ench);
                 removed.add(new StripResult.Removed(ench, entry.getValue()));
             } else {
-                final int cap = config.levelCap(ench);
+                final int cap = config.levelCap(ench, worldName);
                 if (cap > 0 && entry.getValue() > cap) {
                     meta.addEnchant(ench, cap, true);
                     capped++;
@@ -89,11 +90,11 @@ public final class EnchantStripper {
                 if (bypass.test(ench)) {
                     continue;
                 }
-                if (config.isBanned(ench)) {
+                if (config.isBanned(ench, worldName)) {
                     storage.removeStoredEnchant(ench);
                     removed.add(new StripResult.Removed(ench, entry.getValue()));
                 } else {
-                    final int cap = config.levelCap(ench);
+                    final int cap = config.levelCap(ench, worldName);
                     if (cap > 0 && entry.getValue() > cap) {
                         storage.addStoredEnchant(ench, cap, true);
                         capped++;
@@ -120,23 +121,26 @@ public final class EnchantStripper {
      * Whether an item violates the rules (carries a banned or over-cap enchantment, held or
      * book-stored), without modifying it. Exempt item types never violate.
      */
-    public static boolean violates(@Nullable ItemStack item, @NotNull AntiEnchantsConfig config) {
+    public static boolean violates(@Nullable ItemStack item, @NotNull AntiEnchantsConfig config,
+                                   @Nullable String worldName) {
         if (item == null || item.isEmpty() || !item.hasItemMeta() || config.isExemptItem(item.getType())) {
             return false;
         }
         final ItemMeta meta = item.getItemMeta();
-        if (anyViolation(meta.getEnchants(), config)) {
+        if (anyViolation(meta.getEnchants(), config, worldName)) {
             return true;
         }
-        return meta instanceof EnchantmentStorageMeta storage && anyViolation(storage.getStoredEnchants(), config);
+        return meta instanceof EnchantmentStorageMeta storage
+                && anyViolation(storage.getStoredEnchants(), config, worldName);
     }
 
-    private static boolean anyViolation(@NotNull Map<Enchantment, Integer> enchants, @NotNull AntiEnchantsConfig config) {
+    private static boolean anyViolation(@NotNull Map<Enchantment, Integer> enchants,
+                                        @NotNull AntiEnchantsConfig config, @Nullable String worldName) {
         for (Map.Entry<Enchantment, Integer> entry : enchants.entrySet()) {
-            if (config.isBanned(entry.getKey())) {
+            if (config.isBanned(entry.getKey(), worldName)) {
                 return true;
             }
-            final int cap = config.levelCap(entry.getKey());
+            final int cap = config.levelCap(entry.getKey(), worldName);
             if (cap > 0 && entry.getValue() > cap) {
                 return true;
             }
@@ -148,13 +152,13 @@ public final class EnchantStripper {
      * Strips banned/over-cap enchantments from every slot of an inventory in place.
      */
     public static @NotNull StripResult purge(@Nullable Inventory inv, @NotNull AntiEnchantsConfig config,
-                                             @NotNull Predicate<Enchantment> bypass) {
+                                             @Nullable String worldName, @NotNull Predicate<Enchantment> bypass) {
         if (inv == null) {
             return StripResult.NONE;
         }
         StripResult total = StripResult.NONE;
         for (ItemStack item : inv.getContents()) {
-            total = total.plus(strip(item, config, bypass));
+            total = total.plus(strip(item, config, worldName, bypass));
         }
         return total;
     }

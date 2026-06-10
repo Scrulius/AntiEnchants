@@ -54,7 +54,8 @@ public final class VillagerTradeListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        if (config.isBlockBannedEnchantTrades() && EnchantStripper.violates(result, config)) {
+        if (config.isBlockBannedEnchantTrades()
+                && EnchantStripper.violates(result, config, event.getEntity().getWorld().getName())) {
             event.setCancelled(true);
         }
     }

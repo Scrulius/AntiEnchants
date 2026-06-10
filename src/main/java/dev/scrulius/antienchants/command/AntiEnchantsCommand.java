@@ -33,12 +33,14 @@ import java.util.TreeSet;
  *   <li>{@code list} — shows the banned keys and level caps in effect.</li>
  *   <li>{@code check} — inspects the held item for banned / over-cap enchantments.</li>
  *   <li>{@code add <key>} / {@code remove <key>} — edits the blocklist, saves and reloads.</li>
+ *   <li>{@code cap <key> <level|off>} — sets/clears a level cap, saves and reloads.</li>
  * </ul>
  */
 public final class AntiEnchantsCommand implements TabExecutor {
 
     private static final String KEYS_PATH = "banned-enchantments.keys";
-    private static final List<String> SUBCOMMANDS = List.of("reload", "list", "check", "add", "remove");
+    private static final String CAPS_PATH = "level-caps";
+    private static final List<String> SUBCOMMANDS = List.of("reload", "list", "check", "add", "remove", "cap");
 
     private final AntiEnchantsPlugin plugin;
 
@@ -79,13 +81,21 @@ public final class AntiEnchantsCommand implements TabExecutor {
                     remove(sender, args[1]);
                 }
             }
+            case "cap" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(Component.text("Usage: /antienchants cap <enchantment> <level|off>",
+                            NamedTextColor.YELLOW));
+                } else {
+                    cap(sender, args[1], args[2]);
+                }
+            }
             default -> sendUsage(sender);
         }
         return true;
     }
 
     private void sendUsage(@NotNull CommandSender sender) {
-        sender.sendMessage(Component.text("Usage: /antienchants <reload|list|check|add|remove>", NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("Usage: /antienchants <reload|list|check|add|remove|cap>", NamedTextColor.YELLOW));
     }
 
     private @NotNull Component summary() {
@@ -113,6 +123,10 @@ public final class AntiEnchantsCommand implements TabExecutor {
             caps.forEach((key, cap) -> sender.sendMessage(
                     Component.text("  - " + key + " <= " + cap, NamedTextColor.YELLOW)));
         }
+        if (config.perWorldRuleCount() > 0) {
+            sender.sendMessage(Component.text("Per-world extra rules: " + config.perWorldRuleCount()
+                    + " world(s) (see config.yml).", NamedTextColor.GRAY));
+        }
     }
 
     private void check(@NotNull CommandSender sender) {
@@ -131,12 +145,13 @@ public final class AntiEnchantsCommand implements TabExecutor {
                     NamedTextColor.GREEN));
             return;
         }
+        final String world = player.getWorld().getName();
         final List<Component> findings = new ArrayList<>();
         final ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            collectFindings(meta.getEnchants(), config, findings);
+            collectFindings(meta.getEnchants(), config, world, findings);
             if (meta instanceof EnchantmentStorageMeta storage) {
-                collectFindings(storage.getStoredEnchants(), config, findings);
+                collectFindings(storage.getStoredEnchants(), config, world, findings);
             }
         }
         if (findings.isEmpty()) {
@@ -148,19 +163,63 @@ public final class AntiEnchantsCommand implements TabExecutor {
     }
 
     private void collectFindings(@NotNull Map<Enchantment, Integer> enchants,
-                                 @NotNull AntiEnchantsConfig config, @NotNull List<Component> findings) {
+                                 @NotNull AntiEnchantsConfig config, @NotNull String world,
+                                 @NotNull List<Component> findings) {
         for (Map.Entry<Enchantment, Integer> entry : enchants.entrySet()) {
             final String key = entry.getKey().getKey().toString();
-            if (config.isBanned(entry.getKey())) {
+            if (config.isBanned(entry.getKey(), world)) {
                 findings.add(Component.text("  - " + key + " (BANNED)", NamedTextColor.RED));
             } else {
-                final int cap = config.levelCap(entry.getKey());
+                final int cap = config.levelCap(entry.getKey(), world);
                 if (cap > 0 && entry.getValue() > cap) {
                     findings.add(Component.text("  - " + key + " " + entry.getValue()
                             + " (over cap, max " + cap + ")", NamedTextColor.YELLOW));
                 }
             }
         }
+    }
+
+    /** Sets or clears ({@code off} / {@code 0}) a global level cap, persisting it to config.yml. */
+    private void cap(@NotNull CommandSender sender, @NotNull String rawKey, @NotNull String rawLevel) {
+        final String normalized = AntiEnchantsConfig.normalizeKey(rawKey);
+        // Stored short for minecraft keys ("sharpness"), full otherwise; clear both variants on write.
+        final String shortKey = normalized.startsWith("minecraft:")
+                ? normalized.substring("minecraft:".length()) : normalized;
+        if (rawLevel.equalsIgnoreCase("off") || rawLevel.equals("0")) {
+            if (!plugin.config().getLevelCaps().containsKey(normalized)) {
+                sender.sendMessage(Component.text(normalized + " has no level cap.", NamedTextColor.YELLOW));
+                return;
+            }
+            plugin.getConfig().set(CAPS_PATH + "." + shortKey, null);
+            plugin.getConfig().set(CAPS_PATH + "." + normalized, null);
+            persist();
+            sender.sendMessage(Component.text("Removed the level cap on " + normalized + ". ",
+                    NamedTextColor.GREEN).append(summary()));
+            return;
+        }
+        final int level;
+        try {
+            level = Integer.parseInt(rawLevel);
+        } catch (NumberFormatException e) {
+            sender.sendMessage(Component.text("'" + rawLevel + "' is not a level (number or 'off').",
+                    NamedTextColor.RED));
+            return;
+        }
+        if (level < 1) {
+            sender.sendMessage(Component.text("The cap must be 1 or higher (use 'off' to remove it).",
+                    NamedTextColor.RED));
+            return;
+        }
+        plugin.getConfig().set(CAPS_PATH + "." + normalized, null);
+        plugin.getConfig().set(CAPS_PATH + "." + shortKey, level);
+        persist();
+        sender.sendMessage(Component.text("Capped " + normalized + " at level " + level + ". ",
+                NamedTextColor.GREEN).append(summary()));
+    }
+
+    private void persist() {
+        plugin.saveConfig();
+        plugin.config().reload();
     }
 
     private void add(@NotNull CommandSender sender, @NotNull String raw) {
@@ -201,7 +260,7 @@ public final class AntiEnchantsCommand implements TabExecutor {
         if (args.length == 1) {
             return filterPrefix(SUBCOMMANDS, args[0]);
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("add")) {
+        if (args.length == 2 && (args[0].equalsIgnoreCase("add") || args[0].equalsIgnoreCase("cap"))) {
             final List<String> keys = new ArrayList<>();
             for (Enchantment ench : RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT)) {
                 final NamespacedKey key = ench.getKey();
@@ -211,6 +270,9 @@ public final class AntiEnchantsCommand implements TabExecutor {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("remove")) {
             return filterPrefix(new ArrayList<>(plugin.config().getBannedKeys()), args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("cap")) {
+            return filterPrefix(List.of("1", "2", "3", "4", "off"), args[2]);
         }
         return List.of();
     }

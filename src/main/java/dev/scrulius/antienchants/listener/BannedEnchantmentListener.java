@@ -20,6 +20,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.inventory.PrepareGrindstoneEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerItemMendEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -37,16 +38,16 @@ import java.util.function.Predicate;
 /**
  * Globally purges banned enchantments (default: <b>mending</b>) and reduces over-cap levels so
  * they can never exist on the server. Every action is config-gated ({@code banned-enchantments},
- * {@code level-caps}).
+ * {@code level-caps}); rules can differ per world ({@code per-world}).
  * <p>
  * Covers every realistic vector: existing inventories (join / open / click / creative), item
- * pickups, fishing, generated loot, mob drops, the enchanting table result, the anvil result
- * preview, plus the very effect of mending via {@link PlayerItemMendEvent}.
+ * pickups, fishing, generated loot, mob drops, the enchanting table result, the anvil and
+ * grindstone result previews, plus the very effect of mending via {@link PlayerItemMendEvent}.
  * <p>
  * Player-context strips honour {@code antienchants.bypass.<key>} permissions, notify the player
- * ({@code messages}) and may grant compensation ({@code compensation}) — never in creative mode
- * (spawning banned books and farming the payout would be free money) and never for loot/mob-drop
- * strips (no owner; would be farmable).
+ * ({@code messages}), are recorded in the audit log ({@code audit-log}) and may grant compensation
+ * ({@code compensation}) — never in creative mode (spawning banned books and farming the payout
+ * would be free money) and never for loot/mob-drop strips (no owner; would be farmable).
  * <p>
  * The click / creative strips are deferred 1 tick — mutating an item mid-click breaks Bukkit's
  * internal item tracking and can dupe (notably in creative).
@@ -73,30 +74,31 @@ public final class BannedEnchantmentListener implements Listener {
 
     /**
      * Purges the player's inventory + cursor (and optionally a container), refreshing the client
-     * and applying feedback/compensation if anything changed.
+     * and applying feedback/compensation/audit if anything changed.
      */
-    private void purgeFor(@NotNull Player player, @Nullable Inventory extra) {
+    private void purgeFor(@NotNull Player player, @Nullable Inventory extra, @NotNull String context) {
         final AntiEnchantsConfig config = config();
+        final String world = player.getWorld().getName();
         final Predicate<Enchantment> bypass = config.bypass(player);
 
-        StripResult total = EnchantStripper.purge(player.getInventory(), config, bypass);
+        StripResult total = EnchantStripper.purge(player.getInventory(), config, world, bypass);
         final ItemStack cursor = player.getItemOnCursor();
-        final StripResult cursorResult = EnchantStripper.strip(cursor, config, bypass);
+        final StripResult cursorResult = EnchantStripper.strip(cursor, config, world, bypass);
         if (cursorResult.changed()) {
             player.setItemOnCursor(cursor);
         }
         total = total.plus(cursorResult);
         if (extra != null) {
-            total = total.plus(EnchantStripper.purge(extra, config, bypass));
+            total = total.plus(EnchantStripper.purge(extra, config, world, bypass));
         }
         if (total.changed()) {
             player.updateInventory();
-            afterStrip(player, total);
+            afterStrip(player, total, context);
         }
     }
 
-    /** Player feedback + compensation after a player-context strip. */
-    private void afterStrip(@NotNull Player player, @NotNull StripResult result) {
+    /** Player feedback + audit + compensation after a player-context strip. */
+    private void afterStrip(@NotNull Player player, @NotNull StripResult result, @NotNull String context) {
         final AntiEnchantsConfig config = config();
         if (!result.removed().isEmpty()) {
             send(player, config.getStrippedMessage(), result.removed().size());
@@ -104,6 +106,7 @@ public final class BannedEnchantmentListener implements Listener {
         if (result.capped() > 0) {
             send(player, config.getCappedMessage(), result.capped());
         }
+        plugin.auditLog().log(context, player, result);
         compensate(player, result.removed());
     }
 
@@ -136,7 +139,7 @@ public final class BannedEnchantmentListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onJoin(@NotNull PlayerJoinEvent event) {
         if (active() && config().isPurgeInventories() && !worldDisabled(event.getPlayer())) {
-            purgeFor(event.getPlayer(), null);
+            purgeFor(event.getPlayer(), null, "JOIN");
         }
     }
 
@@ -146,7 +149,7 @@ public final class BannedEnchantmentListener implements Listener {
                 || !(event.getPlayer() instanceof Player player) || worldDisabled(player)) {
             return;
         }
-        purgeFor(player, event.getInventory());
+        purgeFor(player, event.getInventory(), "OPEN");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -156,7 +159,7 @@ public final class BannedEnchantmentListener implements Listener {
             return;
         }
         final Inventory top = event.getInventory();
-        plugin.getServer().getScheduler().runTask(plugin, () -> purgeFor(player, top));
+        plugin.getServer().getScheduler().runTask(plugin, () -> purgeFor(player, top, "CLICK"));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -166,7 +169,7 @@ public final class BannedEnchantmentListener implements Listener {
             return;
         }
         final Inventory top = event.getInventory();
-        plugin.getServer().getScheduler().runTask(plugin, () -> purgeFor(player, top));
+        plugin.getServer().getScheduler().runTask(plugin, () -> purgeFor(player, top, "CLICK"));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -179,12 +182,13 @@ public final class BannedEnchantmentListener implements Listener {
         if (player != null && worldDisabled(player)) {
             return;
         }
+        final String world = event.getEntity().getWorld().getName();
         final ItemStack item = event.getItem().getItemStack();
-        final StripResult result = EnchantStripper.strip(item, config, config.bypass(player));
+        final StripResult result = EnchantStripper.strip(item, config, world, config.bypass(player));
         if (result.changed()) {
             event.getItem().setItemStack(item);
             if (player != null) {
-                afterStrip(player, result);
+                afterStrip(player, result, "PICKUP");
             }
         }
     }
@@ -197,10 +201,11 @@ public final class BannedEnchantmentListener implements Listener {
         }
         final AntiEnchantsConfig config = config();
         final ItemStack item = itemEntity.getItemStack();
-        final StripResult result = EnchantStripper.strip(item, config, config.bypass(event.getPlayer()));
+        final StripResult result = EnchantStripper.strip(item, config,
+                event.getPlayer().getWorld().getName(), config.bypass(event.getPlayer()));
         if (result.changed()) {
             itemEntity.setItemStack(item);
-            afterStrip(event.getPlayer(), result);
+            afterStrip(event.getPlayer(), result, "FISHING");
         }
     }
 
@@ -210,13 +215,14 @@ public final class BannedEnchantmentListener implements Listener {
             return;
         }
         final var world = event.getLootContext().getLocation().getWorld();
-        if (world != null && config().isWorldDisabled(world.getName())) {
+        final String worldName = world != null ? world.getName() : null;
+        if (worldName != null && config().isWorldDisabled(worldName)) {
             return;
         }
         final List<ItemStack> loot = new ArrayList<>(event.getLoot());
         boolean changed = false;
         for (ItemStack item : loot) {
-            changed |= EnchantStripper.strip(item, config(), EnchantStripper.NO_BYPASS).changed();
+            changed |= EnchantStripper.strip(item, config(), worldName, EnchantStripper.NO_BYPASS).changed();
         }
         if (changed) {
             event.setLoot(loot);
@@ -225,12 +231,12 @@ public final class BannedEnchantmentListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityDeath(@NotNull EntityDeathEvent event) {
-        if (!active() || !config().isStripMobDrops()
-                || config().isWorldDisabled(event.getEntity().getWorld().getName())) {
+        final String world = event.getEntity().getWorld().getName();
+        if (!active() || !config().isStripMobDrops() || config().isWorldDisabled(world)) {
             return;
         }
         for (ItemStack item : event.getDrops()) {
-            EnchantStripper.strip(item, config(), EnchantStripper.NO_BYPASS);
+            EnchantStripper.strip(item, config(), world, EnchantStripper.NO_BYPASS);
         }
     }
 
@@ -259,14 +265,16 @@ public final class BannedEnchantmentListener implements Listener {
         if (config.isExemptItem(event.getItem().getType())) {
             return;
         }
+        final String world = event.getEnchanter().getWorld().getName();
         final Predicate<Enchantment> bypass = config.bypass(event.getEnchanter());
         final Map<Enchantment, Integer> toAdd = event.getEnchantsToAdd();
-        toAdd.entrySet().removeIf(entry -> !bypass.test(entry.getKey()) && config.isBanned(entry.getKey()));
+        toAdd.entrySet().removeIf(entry ->
+                !bypass.test(entry.getKey()) && config.isBanned(entry.getKey(), world));
         for (Map.Entry<Enchantment, Integer> entry : toAdd.entrySet()) {
             if (bypass.test(entry.getKey())) {
                 continue;
             }
-            final int cap = config.levelCap(entry.getKey());
+            final int cap = config.levelCap(entry.getKey(), world);
             if (cap > 0 && entry.getValue() > cap) {
                 entry.setValue(cap);
             }
@@ -276,8 +284,22 @@ public final class BannedEnchantmentListener implements Listener {
     /** Strips banned/over-cap enchantments from the anvil result preview (honest preview, no charge-then-purge). */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPrepareAnvil(@NotNull PrepareAnvilEvent event) {
-        if (!active() || !config().isBlockAtAnvil()
-                || !(event.getView().getPlayer() instanceof Player player) || worldDisabled(player)) {
+        if (active() && config().isBlockAtAnvil()) {
+            stripResultPreview(event.getView().getPlayer() instanceof Player player ? player : null, event);
+        }
+    }
+
+    /** Same for the grindstone result (mainly curses, which the grindstone keeps on the output). */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPrepareGrindstone(@NotNull PrepareGrindstoneEvent event) {
+        if (active() && config().isBlockAtGrindstone()) {
+            stripResultPreview(event.getView().getPlayer() instanceof Player player ? player : null, event);
+        }
+    }
+
+    private void stripResultPreview(@Nullable Player player,
+                                    @NotNull com.destroystokyo.paper.event.inventory.PrepareResultEvent event) {
+        if (player == null || worldDisabled(player)) {
             return;
         }
         final ItemStack result = event.getResult();
@@ -285,7 +307,7 @@ public final class BannedEnchantmentListener implements Listener {
             return;
         }
         final ItemStack clean = result.clone();
-        if (EnchantStripper.strip(clean, config(), config().bypass(player)).changed()) {
+        if (EnchantStripper.strip(clean, config(), player.getWorld().getName(), config().bypass(player)).changed()) {
             event.setResult(clean);
         }
     }

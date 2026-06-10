@@ -48,10 +48,12 @@ banned-enchantments:
   strip-mob-drops: true
 
   # Remove banned enchantments (and apply level caps) at the source: the
-  # enchanting table result and the anvil result preview. Better than letting
-  # the player pay and purging the item afterwards.
+  # enchanting table result and the anvil/grindstone result previews. Better
+  # than letting the player pay and purging the item afterwards. The grindstone
+  # case matters mainly for curses (the grindstone keeps them on the output).
   block-at-table: true
   block-at-anvil: true
+  block-at-grindstone: true
 
 # Level caps: instead of banning outright, cap an enchantment at a maximum
 # level — anything above is automatically reduced (e.g. with 'sharpness: 3',
@@ -61,6 +63,16 @@ banned-enchantments:
 #   sharpness: 3
 #   protection: 2
 level-caps: {}
+
+# Per-world EXTRA rules, merged ON TOP of the global ones. Worlds not listed
+# here use the global rules only. Useful for resource/mining worlds.
+# Example:
+#   world_resource:
+#     keys:               # banned in that world, in addition to the global list
+#       - fortune
+#     level-caps:         # caps in that world (add to or override the global ones)
+#       efficiency: 4
+per-world: {}
 
 # Compensation: when a banned enchantment is stripped from a player's item,
 # give something back so rare loot doesn't feel wasted. Entries are
@@ -91,6 +103,14 @@ messages:
   stripped: "<red>{count} banned enchantment(s) were removed from your items."
   capped: "<yellow>{count} enchantment(s) were reduced to the allowed level."
   compensated: "<green>You received compensation for the removed enchantment(s)."
+
+# Audit log: appends every player-context strip/cap to
+# plugins/AntiEnchants/strips.log (when, who, where, what was removed) so staff
+# can answer "the plugin took my X" claims. Written asynchronously.
+audit-log:
+  enabled: false
+  # Rotate to strips.log.1 when the file exceeds this size (KB). 0 = never rotate.
+  max-file-kb: 2048
 
 # Villager trade control. Cancelling on acquire prevents the recipe from ever
 # being added to the villager.

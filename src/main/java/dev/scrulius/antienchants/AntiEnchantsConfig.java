@@ -49,7 +49,18 @@ public final class AntiEnchantsConfig {
     private boolean convertEmptyBooks;
     private boolean blockAtTable;
     private boolean blockAtAnvil;
+    private boolean blockAtGrindstone;
     private Set<String> bannedKeys = Set.of();
+
+    // Per-world extra rules, already merged with the global ones (world name lowercase -> rules)
+    private record WorldRules(@NotNull Set<String> banned, @NotNull Map<String, Integer> caps) {
+    }
+
+    private Map<String, WorldRules> perWorldRules = Map.of();
+
+    // Audit log
+    private boolean auditEnabled;
+    private int auditMaxFileKb;
 
     // Exempt item types (whitelist)
     private Set<Material> exemptMaterials = Set.of();
@@ -100,6 +111,7 @@ public final class AntiEnchantsConfig {
         convertEmptyBooks = c.getBoolean("banned-enchantments.convert-empty-books", true);
         blockAtTable = c.getBoolean("banned-enchantments.block-at-table", true);
         blockAtAnvil = c.getBoolean("banned-enchantments.block-at-anvil", true);
+        blockAtGrindstone = c.getBoolean("banned-enchantments.block-at-grindstone", true);
 
         final Set<String> keys = new HashSet<>();
         for (String raw : c.getStringList("banned-enchantments.keys")) {
@@ -111,9 +123,13 @@ public final class AntiEnchantsConfig {
 
         loadExemptItems(c.getStringList("banned-enchantments.exempt-items"));
         loadLevelCaps(c.getConfigurationSection("level-caps"));
+        loadPerWorld(c.getConfigurationSection("per-world"));
         loadCompensation(c);
 
         permissionBypassEnabled = c.getBoolean("permission-bypass.enabled", true);
+
+        auditEnabled = c.getBoolean("audit-log.enabled", false);
+        auditMaxFileKb = c.getInt("audit-log.max-file-kb", 2048);
 
         strippedMessage = c.getString("messages.stripped", "");
         cappedMessage = c.getString("messages.capped", "");
@@ -172,6 +188,41 @@ public final class AntiEnchantsConfig {
         levelCaps = caps;
     }
 
+    /** Merges each world's extra banned keys / cap overrides on top of the global rules. Must run after both. */
+    private void loadPerWorld(@Nullable ConfigurationSection section) {
+        final Map<String, WorldRules> rules = new HashMap<>();
+        if (section != null) {
+            for (String world : section.getKeys(false)) {
+                final ConfigurationSection ws = section.getConfigurationSection(world);
+                if (ws == null) {
+                    continue;
+                }
+                final Set<String> banned = new HashSet<>(bannedKeys);
+                for (String raw : ws.getStringList("keys")) {
+                    if (raw != null && !raw.isBlank()) {
+                        banned.add(normalizeKey(raw));
+                    }
+                }
+                final Map<String, Integer> caps = new HashMap<>(levelCaps);
+                final ConfigurationSection capsSection = ws.getConfigurationSection("level-caps");
+                if (capsSection != null) {
+                    for (String key : capsSection.getKeys(false)) {
+                        final int cap = capsSection.getInt(key, 0);
+                        if (cap > 0) {
+                            caps.put(normalizeKey(key), cap);
+                        } else {
+                            plugin.getLogger().warning("per-world." + world
+                                    + ".level-caps: invalid cap for '" + key + "' (must be > 0)");
+                        }
+                    }
+                }
+                rules.put(world.toLowerCase(Locale.ROOT),
+                        new WorldRules(Set.copyOf(banned), Map.copyOf(caps)));
+            }
+        }
+        perWorldRules = rules;
+    }
+
     private void loadCompensation(@NotNull FileConfiguration c) {
         compensationEnabled = c.getBoolean("compensation.enabled", false);
         compensationDefault = parseItemList(c.getStringList("compensation.default"));
@@ -218,20 +269,42 @@ public final class AntiEnchantsConfig {
     }
 
     /**
-     * Whether an enchantment is banned — either listed explicitly or (when
-     * {@code ban-all-curses} is on) any curse.
+     * Whether an enchantment is banned in a world — listed explicitly (globally or in that
+     * world's {@code per-world} extras) or, when {@code ban-all-curses} is on, any curse.
+     * {@code null} world = global rules only.
      */
-    public boolean isBanned(@NotNull Enchantment ench) {
+    public boolean isBanned(@NotNull Enchantment ench, @Nullable String worldName) {
         if (banAllCurses && ench.isCursed()) {
             return true;
         }
-        return !bannedKeys.isEmpty()
-                && bannedKeys.contains(ench.getKey().toString().toLowerCase(Locale.ROOT));
+        final Set<String> keys = bannedKeysFor(worldName);
+        return !keys.isEmpty()
+                && keys.contains(ench.getKey().toString().toLowerCase(Locale.ROOT));
     }
 
-    /** @return the configured maximum level for an enchantment, or {@code 0} if uncapped */
-    public int levelCap(@NotNull Enchantment ench) {
-        return levelCaps.getOrDefault(ench.getKey().toString().toLowerCase(Locale.ROOT), 0);
+    /** @return the maximum level for an enchantment in a world, or {@code 0} if uncapped */
+    public int levelCap(@NotNull Enchantment ench, @Nullable String worldName) {
+        return capsFor(worldName).getOrDefault(ench.getKey().toString().toLowerCase(Locale.ROOT), 0);
+    }
+
+    private @NotNull Set<String> bannedKeysFor(@Nullable String worldName) {
+        if (worldName != null && !perWorldRules.isEmpty()) {
+            final WorldRules rules = perWorldRules.get(worldName.toLowerCase(Locale.ROOT));
+            if (rules != null) {
+                return rules.banned();
+            }
+        }
+        return bannedKeys;
+    }
+
+    private @NotNull Map<String, Integer> capsFor(@Nullable String worldName) {
+        if (worldName != null && !perWorldRules.isEmpty()) {
+            final WorldRules rules = perWorldRules.get(worldName.toLowerCase(Locale.ROOT));
+            if (rules != null) {
+                return rules.caps();
+            }
+        }
+        return levelCaps;
     }
 
     /** @return whether the item type is whitelisted and must never be touched */
@@ -307,6 +380,14 @@ public final class AntiEnchantsConfig {
         for (String key : levelCaps.keySet()) {
             nodes.add(bypassNodeFromKey(key));
         }
+        for (WorldRules rules : perWorldRules.values()) {
+            for (String key : rules.banned()) {
+                nodes.add(bypassNodeFromKey(key));
+            }
+            for (String key : rules.caps().keySet()) {
+                nodes.add(bypassNodeFromKey(key));
+            }
+        }
         if (banAllCurses) {
             for (Enchantment ench : RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT)) {
                 if (ench.isCursed()) {
@@ -335,7 +416,10 @@ public final class AntiEnchantsConfig {
     public boolean isConvertEmptyBooks() { return convertEmptyBooks; }
     public boolean isBlockAtTable() { return blockAtTable; }
     public boolean isBlockAtAnvil() { return blockAtAnvil; }
+    public boolean isBlockAtGrindstone() { return blockAtGrindstone; }
     public boolean isCompensationEnabled() { return compensationEnabled; }
+    public boolean isAuditEnabled() { return auditEnabled; }
+    public int getAuditMaxFileKb() { return auditMaxFileKb; }
 
     public @NotNull String getStrippedMessage() { return strippedMessage; }
     public @NotNull String getCappedMessage() { return cappedMessage; }
@@ -356,6 +440,9 @@ public final class AntiEnchantsConfig {
 
     /** @return how many enchantments have a level cap (for the startup log) */
     public int levelCapCount() { return levelCaps.size(); }
+
+    /** @return how many worlds define extra rules (for /antienchants list) */
+    public int perWorldRuleCount() { return perWorldRules.size(); }
 
     /** @return whether AntiEnchants should be skipped in the given world */
     public boolean isWorldDisabled(@NotNull String worldName) {
