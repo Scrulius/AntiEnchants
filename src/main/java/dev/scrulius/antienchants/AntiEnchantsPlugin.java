@@ -22,8 +22,8 @@ import java.util.Objects;
  */
 public final class AntiEnchantsPlugin extends JavaPlugin {
 
-    /** bStats service id (https://bstats.org). 0 = metrics disabled (id not registered yet). */
-    private static final int BSTATS_PLUGIN_ID = 0;
+    /** bStats service id (https://bstats.org/plugin/bukkit/AntiEnchants/31912). */
+    private static final int BSTATS_PLUGIN_ID = 31912;
 
     private AntiEnchantsConfig config;
     private AuditLog auditLog;
