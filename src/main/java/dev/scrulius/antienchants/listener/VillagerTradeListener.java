@@ -19,8 +19,8 @@ import java.util.Set;
  * cancelling {@link VillagerAcquireTradeEvent} prevents the recipe from ever being added.
  * <ul>
  *   <li>{@code block-book-trades} — any trade whose result is a book of any kind.</li>
- *   <li>{@code block-banned-enchant-trades} — any trade whose result carries a banned
- *       enchantment (covers non-book results too).</li>
+ *   <li>{@code block-banned-enchant-trades} — any trade whose result carries a banned or
+ *       over-cap enchantment (covers non-book results too).</li>
  * </ul>
  */
 public final class VillagerTradeListener implements Listener {
@@ -54,7 +54,7 @@ public final class VillagerTradeListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        if (config.isBlockBannedEnchantTrades() && EnchantStripper.hasBanned(result, config)) {
+        if (config.isBlockBannedEnchantTrades() && EnchantStripper.violates(result, config)) {
             event.setCancelled(true);
         }
     }

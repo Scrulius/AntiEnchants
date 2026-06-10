@@ -18,6 +18,14 @@ banned-enchantments:
   # without listing them one by one.
   ban-all-curses: false
 
+  # Item types that are NEVER touched (no strip, no level cap). Material names,
+  # '*' wildcards allowed. Example: [ "*_SWORD", "*_AXE", "BOW", "TRIDENT" ]
+  exempt-items: []
+
+  # When a stripped enchanted book ends up with no enchantments left, convert it
+  # into a normal book instead of leaving a useless empty enchanted book behind.
+  convert-empty-books: true
+
   # Purge the player's inventory on join / inventory open / click. The click and
   # creative strips are deferred 1 tick to avoid breaking Bukkit's item tracking
   # (and duping).
@@ -39,6 +47,51 @@ banned-enchantments:
   # Clean enchanted gear dropped by mobs on death.
   strip-mob-drops: true
 
+  # Remove banned enchantments (and apply level caps) at the source: the
+  # enchanting table result and the anvil result preview. Better than letting
+  # the player pay and purging the item afterwards.
+  block-at-table: true
+  block-at-anvil: true
+
+# Level caps: instead of banning outright, cap an enchantment at a maximum
+# level — anything above is automatically reduced (e.g. with 'sharpness: 3',
+# a Sharpness V sword becomes Sharpness III). Same key format as
+# banned-enchantments.keys.
+# Example:
+#   sharpness: 3
+#   protection: 2
+level-caps: {}
+
+# Compensation: when a banned enchantment is stripped from a player's item,
+# give something back so rare loot doesn't feel wasted. Entries are
+# "MATERIAL:amount", granted once per stripped enchantment.
+# Only player-context strips compensate (inventory purge, pickup, fishing) and
+# never in creative mode; loot/mob-drop strips never do (no owner = farmable).
+compensation:
+  enabled: false
+  # Used unless the enchantment has an override below.
+  default:
+    - "EXPERIENCE_BOTTLE:4"
+  # Per-enchantment overrides. Example:
+  #   mending:
+  #     - "EMERALD:8"
+  per-enchant: {}
+
+# Permission bypass: players with 'antienchants.bypass.<key>' keep and use that
+# enchantment (e.g. antienchants.bypass.mending, or
+# antienchants.bypass.ecoenchants.telekinesis for other namespaces).
+# 'antienchants.bypass.*' bypasses everything. All nodes are registered with
+# default FALSE, so ops do NOT bypass by accident.
+permission-bypass:
+  enabled: true
+
+# Player feedback when their items are adjusted (MiniMessage format;
+# empty string = silent). {count} = number of enchantments affected.
+messages:
+  stripped: "<red>{count} banned enchantment(s) were removed from your items."
+  capped: "<yellow>{count} enchantment(s) were reduced to the allowed level."
+  compensated: "<green>You received compensation for the removed enchantment(s)."
+
 # Villager trade control. Cancelling on acquire prevents the recipe from ever
 # being added to the villager.
 villager-trades:
@@ -48,8 +101,8 @@ villager-trades:
   # book, writable/written book, knowledge book).
   block-book-trades: true
 
-  # Villagers won't acquire trades whose result carries a banned enchantment
-  # (covers non-book results too).
+  # Villagers won't acquire trades whose result carries a banned or over-cap
+  # enchantment (covers non-book results too).
   block-banned-enchant-trades: true
 
 # Worlds where nothing is applied (list of names). Empty = applied everywhere.

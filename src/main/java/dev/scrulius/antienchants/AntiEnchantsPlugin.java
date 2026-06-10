@@ -24,6 +24,7 @@ public final class AntiEnchantsPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        ConfigMerger.addMissingKeys(this);
         this.config = new AntiEnchantsConfig(this);
 
         final PluginManager pm = getServer().getPluginManager();
@@ -35,7 +36,7 @@ public final class AntiEnchantsPlugin extends JavaPlugin {
         cmd.setExecutor(new AntiEnchantsCommand(this));
 
         getLogger().info("AntiEnchants enabled. " + config.bannedKeyCount()
-                + " enchantment(s) in the blocklist.");
+                + " banned enchantment(s), " + config.levelCapCount() + " level cap(s).");
     }
 
     @Override
