@@ -1,0 +1,28 @@
+[B]The "test before you trust" update.[/B] Changing enchantment rules on a live server has always been a leap of faith: you add a ban, hit reload, and find out from your players what it actually did. Not anymore.
+
+[SIZE=4][COLOR=#9B59B6][B]Dry-run mode — see it before it happens[/B][/COLOR][/SIZE]
+Set [ICODE]dry-run: true[/ICODE] and AntiEnchants switches to observe-only: it detects every violation exactly as if it were live, logs what it [I]would[/I] strip or cap (console, plus [ICODE]strips.log[/ICODE] if the audit log is on) — and doesn't touch a single item.
+[LIST]
+[*]Thinking about banning Fortune? Turn dry-run on, watch the logs for a day, and know precisely how many players are affected and what they'd lose — before anyone loses anything.
+[*]Everything stands down, not just the strips: enchanting tables, anvils, grindstones, villager trades and mending all behave like vanilla while you observe.
+[*]Repeated findings are deduplicated, so a player clicking around their inventory doesn't flood your console with the same report.
+[*]A loud warning on startup, reload and [ICODE]/ae list[/ICODE] makes sure you never forget it's on.
+[/LIST]
+
+[SIZE=4][COLOR=#9B59B6][B]/ae purge — apply the rules NOW[/B][/COLOR][/SIZE]
+Until now, a new rule reached each player whenever they next joined or clicked their inventory. [ICODE]/ae purge all[/ICODE] cleans every online inventory the moment you decide:
+[LIST]
+[*][ICODE]/ae purge <player>[/ICODE] for one player, [ICODE]/ae purge all[/ICODE] for everyone online, with a summary of how many enchantments were removed and capped.
+[*]It runs the exact same pipeline as the automatic strips — bypass permissions, player messages, compensation and the audit log all apply.
+[*]With dry-run on, it reports instead of cleaning: [ICODE]dry-run: true[/ICODE] + [ICODE]/ae purge all[/ICODE] = an instant, zero-risk impact report of your current rules across the whole server.
+[/LIST]
+
+The two are built to be used together: preview with dry-run, tune with [ICODE]/ae add[/ICODE]/[ICODE]remove[/ICODE]/[ICODE]cap[/ICODE], flip dry-run off, then [ICODE]/ae purge all[/ICODE] to apply the cleanup in one go — on your schedule, not the plugin's.
+
+[SIZE=4][COLOR=#9B59B6][B]Housekeeping[/B][/COLOR][/SIZE]
+[LIST]
+[*]The new [ICODE]dry-run[/ICODE] option is added to your existing config automatically (off by default, comments included); your edited values stay untouched. Upgrade path covered by automated tests, as always.
+[*][ICODE]/ae purge[/ICODE] tab-completes online player names, and dry-run status is shown in [ICODE]/ae list[/ICODE] and after [ICODE]/ae reload[/ICODE].
+[/LIST]
+
+No breaking changes: drop the jar in and your old config keeps working — and keeps enforcing, exactly as before.

@@ -17,6 +17,8 @@ Born as [I]AntiMending[/I], now a general-purpose enchantment control plugin: de
 [*][B]Villager control[/B] — stop librarians from selling enchanted books (or any book), and any trade carrying a banned/over-cap enchantment.
 [*][B]Player feedback[/B] — configurable MiniMessage messages when items are stripped, capped or compensated. Empty = silent.
 [*][B]Audit log[/B] (optional) — every strip goes to [ICODE]strips.log[/ICODE]: when, who, where, what.
+[*][B]Dry-run mode[/B] (optional) — [ICODE]dry-run: true[/ICODE] and the plugin only LOGS what it would strip or cap, without touching a single item. Preview the impact of new rules on a live server before enforcing them.
+[*][B]On-demand purge[/B] — [ICODE]/ae purge all[/ICODE] cleans every online inventory the moment you change the rules, instead of waiting for each player's next join.
 [*][B]Other plugins' enchantments[/B] — keys accept any namespace ([ICODE]ecoenchants:telekinesis[/ICODE]).
 [/LIST]
 
@@ -27,6 +29,7 @@ Born as [I]AntiMending[/I], now a general-purpose enchantment control plugin: de
 [*][ICODE]/ae check[/ICODE] — inspect the item in your hand.
 [*][ICODE]/ae add <enchant>[/ICODE] / [ICODE]/ae remove <enchant>[/ICODE] — edit the banlist live (saved to config).
 [*][ICODE]/ae cap <enchant> <level|off>[/ICODE] — set or clear a level cap live.
+[*][ICODE]/ae purge <player|all>[/ICODE] — clean online inventories on demand (reports instead of cleaning while dry-run is on).
 [/LIST]
 
 [SIZE=5][COLOR=#9B59B6][B]Configuration[/B][/COLOR][/SIZE]
@@ -34,6 +37,13 @@ Every feature can be toggled. Updating the jar adds new options to your config a
 
 [SPOILER="Full config.yml (default)"]
 [CODE=yaml]
+# DRY-RUN mode: when true, AntiEnchants only LOGS what it would do (console,
+# plus strips.log when the audit log is enabled) and never modifies a single
+# item. Turn it on to preview the impact of new rules on a live server, adjust
+# them with /antienchants add|remove|cap, then set it back to false — and run
+# /antienchants purge all to apply the cleanup in one go.
+dry-run: false
+
 # Banned enchantments: removed from ANY item (inventories, picked-up items,
 # fishing, loot, mob drops) so they can never exist on the server.
 banned-enchantments:

@@ -8,13 +8,13 @@ description: Blocks unwanted enchantments server-wide (successor to AntiMending)
 commands:
   antienchants:
     description: AntiEnchants main command.
-    usage: /antienchants <reload|list|check|add|remove>
+    usage: /antienchants <reload|list|check|add|remove|cap|purge>
     aliases: [ae, antienchant]
     permission: antienchants.admin
 
 permissions:
   antienchants.admin:
-    description: Allows managing AntiEnchants (reload, list, check, add, remove).
+    description: Allows managing AntiEnchants (reload, list, check, add, remove, cap, purge).
     default: op
   antienchants.bypass.*:
     description: Bypass every AntiEnchants restriction (per-enchant children are registered at runtime).

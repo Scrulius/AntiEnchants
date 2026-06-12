@@ -37,6 +37,9 @@ public final class AntiEnchantsConfig {
 
     private final AntiEnchantsPlugin plugin;
 
+    // Dry-run: detect and log only, never modify anything
+    private boolean dryRun;
+
     // Banned enchantments
     private boolean bannedEnabled;
     private boolean purgeInventories;
@@ -100,6 +103,7 @@ public final class AntiEnchantsConfig {
         plugin.reloadConfig();
         final FileConfiguration c = plugin.getConfig();
 
+        dryRun = c.getBoolean("dry-run", false);
         bannedEnabled = c.getBoolean("banned-enchantments.enabled", true);
         purgeInventories = c.getBoolean("banned-enchantments.purge-player-inventories", true);
         blockXpRepair = c.getBoolean("banned-enchantments.block-xp-repair", true);
@@ -148,6 +152,12 @@ public final class AntiEnchantsConfig {
         disabledWorlds = worlds;
 
         registerBypassPermissions();
+
+        if (dryRun) {
+            plugin.getLogger().warning("DRY-RUN mode is ON: violations are only logged (console"
+                    + " + strips.log if the audit log is enabled), no item is ever modified."
+                    + " Set 'dry-run: false' to enforce the rules.");
+        }
     }
 
     private void loadExemptItems(@NotNull List<String> raw) {
@@ -404,6 +414,9 @@ public final class AntiEnchantsConfig {
             }
         }
     }
+
+    /** @return whether dry-run mode is on (detect + log only; nothing is ever modified) */
+    public boolean isDryRun() { return dryRun; }
 
     public boolean isBannedEnabled() { return bannedEnabled; }
     public boolean isPurgeInventories() { return purgeInventories; }

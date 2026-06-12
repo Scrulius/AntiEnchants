@@ -31,12 +31,21 @@ per-world rules, compensation, permission bypasses, villager trade control and a
 - **Empty-book conversion**: a stripped enchanted book with nothing left becomes a normal book.
 - **Blocks mending's effect** (`PlayerItemMendEvent`): XP never repairs, even if an item slips through.
 - **Curses**: `ban-all-curses` blocks every curse at once (vanilla + plugins).
+- **Dry-run mode** (`dry-run`, off by default): detect and log what *would* be stripped/capped
+  (console + `strips.log` if the audit log is on) without modifying a single item — preview the
+  impact of new rules on a live server before enforcing them. Non-destructive interventions
+  (result previews, mend cancel, trade cancels) stand down too. Loud warning on startup/reload
+  so it's never left on by accident.
+- **On-demand purge** (`/antienchants purge <player|all>`): clean online inventories immediately
+  after changing the rules, instead of waiting for each player's next join/click. Same pipeline
+  as the automatic strips (bypass, messages, compensation, audit) and honours dry-run.
 - **Villager trades**: cancels trades whose result is a book (any type) or carries a banned /
   over-cap enchantment.
 - **Per-world**: `disabled-worlds` excludes worlds entirely.
 - **Commands** (permission `antienchants.admin`): `/antienchants reload | list | check | add <key>
-  | remove <key> | cap <key> <level|off>` — `check` inspects the held item; `add`, `remove` and
-  `cap` edit the config live and save it.
+  | remove <key> | cap <key> <level|off> | purge <player|all>` — `check` inspects the held item;
+  `add`, `remove` and `cap` edit the config live and save it; `purge` cleans online inventories
+  on demand.
 - **Config auto-update**: new options are merged into your existing `config.yml` (with comments)
   on startup without touching values you edited.
 - **bStats**: anonymous usage stats (opt-out in `plugins/bStats/config.yml`).
@@ -46,7 +55,7 @@ per-world rules, compensation, permission bypasses, villager trade control and a
 Gradle + Java 25, Paper 26.1.2.
 
 ```
-./gradlew.bat shadowJar    # -> build/libs/AntiEnchants-1.1.0.jar (bStats shaded + relocated)
+./gradlew.bat shadowJar    # -> build/libs/AntiEnchants-1.2.0.jar (bStats shaded + relocated)
 ```
 
 ## Config

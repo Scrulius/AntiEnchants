@@ -50,13 +50,17 @@ public final class VillagerTradeListener implements Listener {
         if (result == null) {
             return;
         }
-        if (config.isBlockBookTrades() && BOOK_MATERIALS.contains(result.getType())) {
-            event.setCancelled(true);
+        final String world = event.getEntity().getWorld().getName();
+        final boolean blocked = (config.isBlockBookTrades() && BOOK_MATERIALS.contains(result.getType()))
+                || (config.isBlockBannedEnchantTrades() && EnchantStripper.violates(result, config, world));
+        if (!blocked) {
             return;
         }
-        if (config.isBlockBannedEnchantTrades()
-                && EnchantStripper.violates(result, config, event.getEntity().getWorld().getName())) {
-            event.setCancelled(true);
+        if (config.isDryRun()) {
+            plugin.getLogger().info("DRY-RUN | VILLAGER-TRADE @ " + world
+                    + " | would block a trade with result " + result.getType());
+            return;
         }
+        event.setCancelled(true);
     }
 }

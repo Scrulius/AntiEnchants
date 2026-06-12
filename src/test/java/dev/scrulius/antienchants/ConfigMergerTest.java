@@ -144,6 +144,11 @@ class ConfigMergerTest {
         assertFalse(user.getBoolean("audit-log.enabled"));
         assertEquals(2048, user.getInt("audit-log.max-file-kb"));
 
+        // 1.2.0: dry-run mode appears, off (the merge must never flip a live server to observe-only
+        // OR silently leave it enforcing when the admin expected a preview — off is the only safe default).
+        assertTrue(user.contains("dry-run", true));
+        assertFalse(user.getBoolean("dry-run", true));
+
         // Nothing in the bundled defaults is missing from the merged config.
         for (String path : defaults.getKeys(true)) {
             assertTrue(user.contains(path, true), "missing after merge: " + path);

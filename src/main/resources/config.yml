@@ -4,6 +4,13 @@
 #  After editing, run /antienchants reload (no restart needed).
 # ─────────────────────────────────────────────
 
+# DRY-RUN mode: when true, AntiEnchants only LOGS what it would do (console,
+# plus strips.log when the audit log is enabled) and never modifies a single
+# item. Turn it on to preview the impact of new rules on a live server, adjust
+# them with /antienchants add|remove|cap, then set it back to false — and run
+# /antienchants purge all to apply the cleanup in one go.
+dry-run: false
+
 # Banned enchantments: removed from ANY item (inventories, picked-up items,
 # fishing, loot, mob drops) so they can never exist on the server.
 banned-enchantments:

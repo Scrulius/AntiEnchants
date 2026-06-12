@@ -27,6 +27,7 @@ public final class AntiEnchantsPlugin extends JavaPlugin {
 
     private AntiEnchantsConfig config;
     private AuditLog auditLog;
+    private BannedEnchantmentListener stripListener;
 
     @Override
     public void onEnable() {
@@ -36,7 +37,8 @@ public final class AntiEnchantsPlugin extends JavaPlugin {
         this.auditLog = new AuditLog(this);
 
         final PluginManager pm = getServer().getPluginManager();
-        pm.registerEvents(new BannedEnchantmentListener(this), this);
+        this.stripListener = new BannedEnchantmentListener(this);
+        pm.registerEvents(stripListener, this);
         pm.registerEvents(new VillagerTradeListener(this), this);
 
         final var cmd = Objects.requireNonNull(getCommand("antienchants"),
@@ -64,6 +66,8 @@ public final class AntiEnchantsPlugin extends JavaPlugin {
                 () -> String.valueOf(config.isCompensationEnabled())));
         metrics.addCustomChart(new SimplePie("ban_all_curses",
                 () -> String.valueOf(config.isBanAllCurses())));
+        metrics.addCustomChart(new SimplePie("dry_run",
+                () -> String.valueOf(config.isDryRun())));
     }
 
     @Override
@@ -79,5 +83,10 @@ public final class AntiEnchantsPlugin extends JavaPlugin {
     /** @return the strip audit trail (no-op when audit-log.enabled is off) */
     public @NotNull AuditLog auditLog() {
         return auditLog;
+    }
+
+    /** @return the strip listener (the on-demand purge for /antienchants purge lives there) */
+    public @NotNull BannedEnchantmentListener stripListener() {
+        return stripListener;
     }
 }

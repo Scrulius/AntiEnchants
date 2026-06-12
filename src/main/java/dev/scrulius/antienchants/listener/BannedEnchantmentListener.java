@@ -31,8 +31,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 /**
@@ -51,10 +54,17 @@ import java.util.function.Predicate;
  * <p>
  * The click / creative strips are deferred 1 tick — mutating an item mid-click breaks Bukkit's
  * internal item tracking and can dupe (notably in creative).
+ * <p>
+ * In dry-run mode ({@code dry-run: true}) every destructive path detects and logs what it
+ * <i>would</i> do (console + audit log) without modifying anything; the non-destructive
+ * interventions (result previews, mend cancel, event cancels) simply stand down.
  */
 public final class BannedEnchantmentListener implements Listener {
 
     private final AntiEnchantsPlugin plugin;
+
+    /** Last dry-run findings per player, so unchanged inventories aren't re-logged on every event. */
+    private final Map<UUID, String> dryRunSeen = new HashMap<>();
 
     public BannedEnchantmentListener(@NotNull AntiEnchantsPlugin plugin) {
         this.plugin = plugin;
@@ -74,27 +84,82 @@ public final class BannedEnchantmentListener implements Listener {
 
     /**
      * Purges the player's inventory + cursor (and optionally a container), refreshing the client
-     * and applying feedback/compensation/audit if anything changed.
+     * and applying feedback/compensation/audit if anything changed. In dry-run mode nothing is
+     * modified; the findings are logged instead.
+     *
+     * @return what was (or, in dry-run, would have been) stripped/capped
      */
-    private void purgeFor(@NotNull Player player, @Nullable Inventory extra, @NotNull String context) {
+    private @NotNull StripResult purgeFor(@NotNull Player player, @Nullable Inventory extra,
+                                          @NotNull String context) {
         final AntiEnchantsConfig config = config();
         final String world = player.getWorld().getName();
         final Predicate<Enchantment> bypass = config.bypass(player);
+        final boolean apply = !config.isDryRun();
 
-        StripResult total = EnchantStripper.purge(player.getInventory(), config, world, bypass);
+        StripResult total = EnchantStripper.purge(player.getInventory(), config, world, bypass, apply);
         final ItemStack cursor = player.getItemOnCursor();
-        final StripResult cursorResult = EnchantStripper.strip(cursor, config, world, bypass);
-        if (cursorResult.changed()) {
+        final StripResult cursorResult = EnchantStripper.strip(cursor, config, world, bypass, apply);
+        if (apply && cursorResult.changed()) {
             player.setItemOnCursor(cursor);
         }
         total = total.plus(cursorResult);
         if (extra != null) {
-            total = total.plus(EnchantStripper.purge(extra, config, world, bypass));
+            total = total.plus(EnchantStripper.purge(extra, config, world, bypass, apply));
         }
         if (total.changed()) {
-            player.updateInventory();
-            afterStrip(player, total, context);
+            if (apply) {
+                player.updateInventory();
+                afterStrip(player, total, context);
+            } else {
+                reportDryRun(player, total, context);
+            }
         }
+        return total;
+    }
+
+    /**
+     * On-demand purge for {@code /antienchants purge} — same pipeline (bypass, feedback,
+     * compensation, audit, dry-run) as the automatic strips.
+     */
+    public @NotNull StripResult purgePlayer(@NotNull Player player) {
+        return purgeFor(player, null, "COMMAND");
+    }
+
+    /** Logs a dry-run finding (console + audit log), skipping repeats of the same findings. */
+    private void reportDryRun(@NotNull Player player, @NotNull StripResult result, @NotNull String context) {
+        final String fingerprint = fingerprint(result);
+        if (fingerprint.equals(dryRunSeen.put(player.getUniqueId(), fingerprint))) {
+            return;
+        }
+        plugin.getLogger().info(describeWouldDo("DRY-RUN | " + context + " | " + player.getName()
+                + " @ " + player.getWorld().getName(), result));
+        plugin.auditLog().log("DRY-RUN/" + context, player, result);
+    }
+
+    /** Order-independent summary of a result, to dedupe dry-run logs for unchanged inventories. */
+    private static @NotNull String fingerprint(@NotNull StripResult result) {
+        final List<String> parts = new ArrayList<>(result.removed().size());
+        for (StripResult.Removed removed : result.removed()) {
+            parts.add(removed.enchantment().getKey() + ":" + removed.level());
+        }
+        Collections.sort(parts);
+        return String.join(",", parts) + "|capped=" + result.capped();
+    }
+
+    /** Human-readable "would remove/cap" line for dry-run console output. */
+    private static @NotNull String describeWouldDo(@NotNull String prefix, @NotNull StripResult result) {
+        final StringBuilder sb = new StringBuilder(prefix);
+        if (!result.removed().isEmpty()) {
+            sb.append(" | would remove:");
+            for (StripResult.Removed removed : result.removed()) {
+                sb.append(' ').append(removed.enchantment().getKey())
+                        .append('(').append(removed.level()).append(')');
+            }
+        }
+        if (result.capped() > 0) {
+            sb.append(" | would cap: ").append(result.capped());
+        }
+        return sb.toString();
     }
 
     /** Player feedback + audit + compensation after a player-context strip. */
@@ -183,13 +248,19 @@ public final class BannedEnchantmentListener implements Listener {
             return;
         }
         final String world = event.getEntity().getWorld().getName();
+        final boolean apply = !config.isDryRun();
         final ItemStack item = event.getItem().getItemStack();
-        final StripResult result = EnchantStripper.strip(item, config, world, config.bypass(player));
-        if (result.changed()) {
+        final StripResult result = EnchantStripper.strip(item, config, world, config.bypass(player), apply);
+        if (!result.changed()) {
+            return;
+        }
+        if (apply) {
             event.getItem().setItemStack(item);
             if (player != null) {
                 afterStrip(player, result, "PICKUP");
             }
+        } else if (player != null) {
+            reportDryRun(player, result, "PICKUP");
         }
     }
 
@@ -200,12 +271,18 @@ public final class BannedEnchantmentListener implements Listener {
             return;
         }
         final AntiEnchantsConfig config = config();
+        final boolean apply = !config.isDryRun();
         final ItemStack item = itemEntity.getItemStack();
         final StripResult result = EnchantStripper.strip(item, config,
-                event.getPlayer().getWorld().getName(), config.bypass(event.getPlayer()));
-        if (result.changed()) {
+                event.getPlayer().getWorld().getName(), config.bypass(event.getPlayer()), apply);
+        if (!result.changed()) {
+            return;
+        }
+        if (apply) {
             itemEntity.setItemStack(item);
             afterStrip(event.getPlayer(), result, "FISHING");
+        } else {
+            reportDryRun(event.getPlayer(), result, "FISHING");
         }
     }
 
@@ -219,13 +296,20 @@ public final class BannedEnchantmentListener implements Listener {
         if (worldName != null && config().isWorldDisabled(worldName)) {
             return;
         }
+        final boolean apply = !config().isDryRun();
         final List<ItemStack> loot = new ArrayList<>(event.getLoot());
-        boolean changed = false;
+        StripResult total = StripResult.NONE;
         for (ItemStack item : loot) {
-            changed |= EnchantStripper.strip(item, config(), worldName, EnchantStripper.NO_BYPASS).changed();
+            total = total.plus(EnchantStripper.strip(item, config(), worldName, EnchantStripper.NO_BYPASS, apply));
         }
-        if (changed) {
+        if (!total.changed()) {
+            return;
+        }
+        if (apply) {
             event.setLoot(loot);
+        } else {
+            plugin.getLogger().info(describeWouldDo(
+                    "DRY-RUN | LOOT @ " + (worldName != null ? worldName : "?"), total));
         }
     }
 
@@ -235,8 +319,13 @@ public final class BannedEnchantmentListener implements Listener {
         if (!active() || !config().isStripMobDrops() || config().isWorldDisabled(world)) {
             return;
         }
+        final boolean apply = !config().isDryRun();
+        StripResult total = StripResult.NONE;
         for (ItemStack item : event.getDrops()) {
-            EnchantStripper.strip(item, config(), world, EnchantStripper.NO_BYPASS);
+            total = total.plus(EnchantStripper.strip(item, config(), world, EnchantStripper.NO_BYPASS, apply));
+        }
+        if (!apply && total.changed()) {
+            plugin.getLogger().info(describeWouldDo("DRY-RUN | MOB-DROP @ " + world, total));
         }
     }
 
@@ -247,6 +336,10 @@ public final class BannedEnchantmentListener implements Listener {
             return;
         }
         if (config().bypass(event.getPlayer()).test(Enchantment.MENDING)) {
+            return;
+        }
+        // Dry-run: stand down silently (fires on every XP orb — logging it would flood the console).
+        if (config().isDryRun()) {
             return;
         }
         event.setCancelled(true);
@@ -268,6 +361,28 @@ public final class BannedEnchantmentListener implements Listener {
         final String world = event.getEnchanter().getWorld().getName();
         final Predicate<Enchantment> bypass = config.bypass(event.getEnchanter());
         final Map<Enchantment, Integer> toAdd = event.getEnchantsToAdd();
+        if (config.isDryRun()) {
+            final List<StripResult.Removed> wouldRemove = new ArrayList<>(0);
+            int wouldCap = 0;
+            for (Map.Entry<Enchantment, Integer> entry : toAdd.entrySet()) {
+                if (bypass.test(entry.getKey())) {
+                    continue;
+                }
+                if (config.isBanned(entry.getKey(), world)) {
+                    wouldRemove.add(new StripResult.Removed(entry.getKey(), entry.getValue()));
+                } else {
+                    final int cap = config.levelCap(entry.getKey(), world);
+                    if (cap > 0 && entry.getValue() > cap) {
+                        wouldCap++;
+                    }
+                }
+            }
+            final StripResult result = new StripResult(List.copyOf(wouldRemove), wouldCap);
+            if (result.changed()) {
+                reportDryRun(event.getEnchanter(), result, "TABLE");
+            }
+            return;
+        }
         toAdd.entrySet().removeIf(entry ->
                 !bypass.test(entry.getKey()) && config.isBanned(entry.getKey(), world));
         for (Map.Entry<Enchantment, Integer> entry : toAdd.entrySet()) {
@@ -299,7 +414,9 @@ public final class BannedEnchantmentListener implements Listener {
 
     private void stripResultPreview(@Nullable Player player,
                                     @NotNull com.destroystokyo.paper.event.inventory.PrepareResultEvent event) {
-        if (player == null || worldDisabled(player)) {
+        // Dry-run: leave the vanilla preview alone, silently (prepare events fire on every slot
+        // change — logging would flood the console, and a preview is not destructive anyway).
+        if (player == null || worldDisabled(player) || config().isDryRun()) {
             return;
         }
         final ItemStack result = event.getResult();

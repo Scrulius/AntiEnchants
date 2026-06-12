@@ -3,6 +3,7 @@ package dev.scrulius.antienchants.command;
 
 import dev.scrulius.antienchants.AntiEnchantsConfig;
 import dev.scrulius.antienchants.AntiEnchantsPlugin;
+import dev.scrulius.antienchants.EnchantStripper.StripResult;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.Component;
@@ -34,13 +35,15 @@ import java.util.TreeSet;
  *   <li>{@code check} — inspects the held item for banned / over-cap enchantments.</li>
  *   <li>{@code add <key>} / {@code remove <key>} — edits the blocklist, saves and reloads.</li>
  *   <li>{@code cap <key> <level|off>} — sets/clears a level cap, saves and reloads.</li>
+ *   <li>{@code purge [player|all]} — cleans online inventories on demand (honours dry-run).</li>
  * </ul>
  */
 public final class AntiEnchantsCommand implements TabExecutor {
 
     private static final String KEYS_PATH = "banned-enchantments.keys";
     private static final String CAPS_PATH = "level-caps";
-    private static final List<String> SUBCOMMANDS = List.of("reload", "list", "check", "add", "remove", "cap");
+    private static final List<String> SUBCOMMANDS =
+            List.of("reload", "list", "check", "add", "remove", "cap", "purge");
 
     private final AntiEnchantsPlugin plugin;
 
@@ -64,6 +67,9 @@ public final class AntiEnchantsCommand implements TabExecutor {
                 plugin.config().reload();
                 sender.sendMessage(Component.text("AntiEnchants reloaded. ", NamedTextColor.GREEN)
                         .append(summary()));
+                if (plugin.config().isDryRun()) {
+                    sender.sendMessage(dryRunBanner());
+                }
             }
             case "list" -> list(sender);
             case "check" -> check(sender);
@@ -89,13 +95,20 @@ public final class AntiEnchantsCommand implements TabExecutor {
                     cap(sender, args[1], args[2]);
                 }
             }
+            case "purge" -> purge(sender, args.length >= 2 ? args[1] : null);
             default -> sendUsage(sender);
         }
         return true;
     }
 
     private void sendUsage(@NotNull CommandSender sender) {
-        sender.sendMessage(Component.text("Usage: /antienchants <reload|list|check|add|remove|cap>", NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("Usage: /antienchants <reload|list|check|add|remove|cap|purge>",
+                NamedTextColor.YELLOW));
+    }
+
+    private static @NotNull Component dryRunBanner() {
+        return Component.text("DRY-RUN mode is ON — violations are only logged, nothing is modified.",
+                NamedTextColor.YELLOW);
     }
 
     private @NotNull Component summary() {
@@ -106,6 +119,9 @@ public final class AntiEnchantsCommand implements TabExecutor {
 
     private void list(@NotNull CommandSender sender) {
         final AntiEnchantsConfig config = plugin.config();
+        if (config.isDryRun()) {
+            sender.sendMessage(dryRunBanner());
+        }
         sender.sendMessage(Component.text("Banned enchantments:", NamedTextColor.GOLD));
         if (config.getBannedKeys().isEmpty()) {
             sender.sendMessage(Component.text("  (none)", NamedTextColor.GRAY));
@@ -245,6 +261,62 @@ public final class AntiEnchantsCommand implements TabExecutor {
         sender.sendMessage(Component.text("Unbanned " + normalized + ". ", NamedTextColor.GREEN).append(summary()));
     }
 
+    /**
+     * Cleans online inventories on demand — right after tightening the rules, instead of waiting
+     * for each player's next join/click. Runs the same pipeline as the automatic strips (bypass
+     * permissions, messages, compensation, audit), so in dry-run mode it only reports.
+     */
+    private void purge(@NotNull CommandSender sender, @Nullable String target) {
+        final List<Player> targets = new ArrayList<>();
+        if (target == null) {
+            if (sender instanceof Player player) {
+                targets.add(player);
+            } else {
+                sender.sendMessage(Component.text("Usage: /antienchants purge <player|all>",
+                        NamedTextColor.YELLOW));
+                return;
+            }
+        } else if (target.equalsIgnoreCase("all")) {
+            targets.addAll(plugin.getServer().getOnlinePlayers());
+        } else {
+            final Player player = plugin.getServer().getPlayerExact(target);
+            if (player == null) {
+                sender.sendMessage(Component.text("Player '" + target + "' is not online.",
+                        NamedTextColor.RED));
+                return;
+            }
+            targets.add(player);
+        }
+
+        final AntiEnchantsConfig config = plugin.config();
+        int purged = 0;
+        int removed = 0;
+        int capped = 0;
+        int skipped = 0;
+        for (Player player : targets) {
+            if (config.isWorldDisabled(player.getWorld().getName())) {
+                skipped++;
+                continue;
+            }
+            final StripResult result = plugin.stripListener().purgePlayer(player);
+            purged++;
+            removed += result.removed().size();
+            capped += result.capped();
+        }
+        if (config.isDryRun()) {
+            sender.sendMessage(Component.text("DRY-RUN: checked " + purged + " player(s) — would remove "
+                    + removed + " enchantment(s) and cap " + capped + ". Nothing was modified.",
+                    NamedTextColor.YELLOW));
+        } else {
+            sender.sendMessage(Component.text("Purged " + purged + " player(s): " + removed
+                    + " enchantment(s) removed, " + capped + " capped.", NamedTextColor.GREEN));
+        }
+        if (skipped > 0) {
+            sender.sendMessage(Component.text(skipped + " player(s) skipped (disabled world).",
+                    NamedTextColor.GRAY));
+        }
+    }
+
     private void saveKeys(@NotNull List<String> keys) {
         plugin.getConfig().set(KEYS_PATH, keys);
         plugin.saveConfig();
@@ -270,6 +342,12 @@ public final class AntiEnchantsCommand implements TabExecutor {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("remove")) {
             return filterPrefix(new ArrayList<>(plugin.config().getBannedKeys()), args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("purge")) {
+            final List<String> options = new ArrayList<>();
+            options.add("all");
+            plugin.getServer().getOnlinePlayers().forEach(p -> options.add(p.getName()));
+            return filterPrefix(options, args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("cap")) {
             return filterPrefix(List.of("1", "2", "3", "4", "off"), args[2]);

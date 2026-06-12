@@ -61,6 +61,16 @@ public final class EnchantStripper {
      */
     public static @NotNull StripResult strip(@Nullable ItemStack item, @NotNull AntiEnchantsConfig config,
                                              @Nullable String worldName, @NotNull Predicate<Enchantment> bypass) {
+        return strip(item, config, worldName, bypass, true);
+    }
+
+    /**
+     * Same as {@link #strip(ItemStack, AntiEnchantsConfig, String, Predicate)}, with a dry-run
+     * switch: {@code apply = false} reports what would change without touching the item.
+     */
+    public static @NotNull StripResult strip(@Nullable ItemStack item, @NotNull AntiEnchantsConfig config,
+                                             @Nullable String worldName, @NotNull Predicate<Enchantment> bypass,
+                                             boolean apply) {
         if (item == null || item.isEmpty() || !item.hasItemMeta() || config.isExemptItem(item.getType())) {
             return StripResult.NONE;
         }
@@ -106,13 +116,15 @@ public final class EnchantStripper {
         if (removed.isEmpty() && capped == 0) {
             return StripResult.NONE;
         }
-        item.setItemMeta(meta);
-        if (!removed.isEmpty() && config.isConvertEmptyBooks()
-                && item.getType() == Material.ENCHANTED_BOOK
-                && item.getItemMeta() instanceof EnchantmentStorageMeta leftover
-                && !leftover.hasStoredEnchants()) {
-            // setType (deprecated) over withType: callers rely on in-place mutation of inventory mirrors.
-            item.setType(Material.BOOK);
+        if (apply) {
+            item.setItemMeta(meta);
+            if (!removed.isEmpty() && config.isConvertEmptyBooks()
+                    && item.getType() == Material.ENCHANTED_BOOK
+                    && item.getItemMeta() instanceof EnchantmentStorageMeta leftover
+                    && !leftover.hasStoredEnchants()) {
+                // setType (deprecated) over withType: callers rely on in-place mutation of inventory mirrors.
+                item.setType(Material.BOOK);
+            }
         }
         return new StripResult(List.copyOf(removed), capped);
     }
@@ -153,12 +165,22 @@ public final class EnchantStripper {
      */
     public static @NotNull StripResult purge(@Nullable Inventory inv, @NotNull AntiEnchantsConfig config,
                                              @Nullable String worldName, @NotNull Predicate<Enchantment> bypass) {
+        return purge(inv, config, worldName, bypass, true);
+    }
+
+    /**
+     * Same as {@link #purge(Inventory, AntiEnchantsConfig, String, Predicate)}, with a dry-run
+     * switch: {@code apply = false} reports what would change without touching any item.
+     */
+    public static @NotNull StripResult purge(@Nullable Inventory inv, @NotNull AntiEnchantsConfig config,
+                                             @Nullable String worldName, @NotNull Predicate<Enchantment> bypass,
+                                             boolean apply) {
         if (inv == null) {
             return StripResult.NONE;
         }
         StripResult total = StripResult.NONE;
         for (ItemStack item : inv.getContents()) {
-            total = total.plus(strip(item, config, worldName, bypass));
+            total = total.plus(strip(item, config, worldName, bypass, apply));
         }
         return total;
     }
