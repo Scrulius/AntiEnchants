@@ -9,8 +9,9 @@ per-world rules, compensation, permission bypasses, villager trade control and a
 - **Global enchantment purge** (default: `mending`) from any item: inventories (on join / open /
   click), picked-up items, fishing, generated loot and mob drops.
 - **Blocks at the source**: removes banned enchantments (and applies caps) on the enchanting-table
-  result and the anvil/grindstone result previews, instead of letting the player pay and purging
-  afterwards.
+  result and the anvil/grindstone/smithing-table result previews, instead of letting the player pay
+  and purging afterwards (the smithing case covers netherite upgrades, which carry every
+  enchantment onto the result).
 - **Level caps** (`level-caps`): cap an enchantment instead of banning it — `sharpness: 3` turns
   Sharpness V into Sharpness III automatically, everywhere the purge runs.
 - **Per-world rules** (`per-world`): extra banned keys and caps for specific worlds (e.g. ban
@@ -34,18 +35,18 @@ per-world rules, compensation, permission bypasses, villager trade control and a
 - **Dry-run mode** (`dry-run`, off by default): detect and log what *would* be stripped/capped
   (console + `strips.log` if the audit log is on) without modifying a single item — preview the
   impact of new rules on a live server before enforcing them. Non-destructive interventions
-  (result previews, mend cancel, trade cancels) stand down too. Loud warning on startup/reload
-  so it's never left on by accident.
+  (result previews, mend cancel, trade cancels) stand down too. Loud warning on startup/reload,
+  banner in `/antienchants list` and a reminder to joining admins, so it's never left on by accident.
 - **On-demand purge** (`/antienchants purge <player|all>`): clean online inventories immediately
   after changing the rules, instead of waiting for each player's next join/click. Same pipeline
   as the automatic strips (bypass, messages, compensation, audit) and honours dry-run.
 - **Villager trades**: cancels trades whose result is a book (any type) or carries a banned /
   over-cap enchantment.
 - **Per-world**: `disabled-worlds` excludes worlds entirely.
-- **Commands** (permission `antienchants.admin`): `/antienchants reload | list | check | add <key>
-  | remove <key> | cap <key> <level|off> | purge <player|all>` — `check` inspects the held item;
-  `add`, `remove` and `cap` edit the config live and save it; `purge` cleans online inventories
-  on demand.
+- **Commands** (permission `antienchants.admin`): `/antienchants reload | list | check [player]
+  | add <key> | remove <key> | cap <key> <level|off> | purge <player|all>` — `check` inspects the
+  held item (or, with a name, every slot of another player's inventory, console included); `add`,
+  `remove` and `cap` edit the config live and save it; `purge` cleans online inventories on demand.
 - **Config auto-update**: new options are merged into your existing `config.yml` (with comments)
   on startup without touching values you edited.
 - **bStats**: anonymous usage stats (opt-out in `plugins/bStats/config.yml`).

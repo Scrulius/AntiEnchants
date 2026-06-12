@@ -11,7 +11,7 @@ Born as [I]AntiMending[/I], now a general-purpose enchantment control plugin: de
 [*][B]Compensation[/B] (optional) — when an enchantment is stripped, the player gets something back (XP bottles, emeralds, anything), per enchantment or globally.
 [*][B]Permission bypasses[/B] — [ICODE]antienchants.bypass.mending[/ICODE] for donor ranks, staff or quest winners. [ICODE]antienchants.bypass.*[/ICODE] for everything. Nodes default to FALSE, so ops never bypass by accident.
 [*][B]Per-world rules[/B] — ban fortune only in your resource world, cap efficiency only in the mining world. Plus [ICODE]disabled-worlds[/ICODE] to turn the plugin off entirely somewhere.
-[*][B]Blocks at the source[/B] — enchanting table results and anvil/grindstone previews are cleaned before the player pays.
+[*][B]Blocks at the source[/B] — enchanting table results and anvil/grindstone/smithing-table previews are cleaned before the player pays (netherite upgrades carry enchantments — covered).
 [*][B]Blocks mending's effect[/B] — XP never repairs durability, even if an item slips through.
 [*][B]Curses[/B] — [ICODE]ban-all-curses: true[/ICODE] blocks every curse at once (vanilla + other plugins).
 [*][B]Villager control[/B] — stop librarians from selling enchanted books (or any book), and any trade carrying a banned/over-cap enchantment.
@@ -26,7 +26,7 @@ Born as [I]AntiMending[/I], now a general-purpose enchantment control plugin: de
 [LIST]
 [*][ICODE]/ae reload[/ICODE] — reload the config, no restart.
 [*][ICODE]/ae list[/ICODE] — what's banned and capped right now.
-[*][ICODE]/ae check[/ICODE] — inspect the item in your hand.
+[*][ICODE]/ae check [player][/ICODE] — inspect the item in your hand, or every slot of another player's inventory (works from console).
 [*][ICODE]/ae add <enchant>[/ICODE] / [ICODE]/ae remove <enchant>[/ICODE] — edit the banlist live (saved to config).
 [*][ICODE]/ae cap <enchant> <level|off>[/ICODE] — set or clear a level cap live.
 [*][ICODE]/ae purge <player|all>[/ICODE] — clean online inventories on demand (reports instead of cleaning while dry-run is on).
@@ -86,10 +86,13 @@ banned-enchantments:
   strip-mob-drops: true
 
   # Remove banned enchantments (and apply level caps) at the source: the
-  # enchanting table result and the anvil/grindstone result previews.
+  # enchanting table result and the anvil/grindstone/smithing-table result
+  # previews (the smithing case covers netherite upgrades, which carry every
+  # enchantment onto the upgraded item).
   block-at-table: true
   block-at-anvil: true
   block-at-grindstone: true
+  block-at-smithing: true
 
 # Level caps: instead of banning outright, cap an enchantment at a maximum
 # level — anything above is automatically reduced (e.g. with 'sharpness: 3',

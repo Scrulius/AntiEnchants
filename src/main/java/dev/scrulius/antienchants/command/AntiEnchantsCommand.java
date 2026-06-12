@@ -32,7 +32,8 @@ import java.util.TreeSet;
  * <ul>
  *   <li>{@code reload} — re-reads {@code config.yml} without a restart.</li>
  *   <li>{@code list} — shows the banned keys and level caps in effect.</li>
- *   <li>{@code check} — inspects the held item for banned / over-cap enchantments.</li>
+ *   <li>{@code check [player]} — inspects the held item (or another player's whole
+ *       inventory) for banned / over-cap enchantments.</li>
  *   <li>{@code add <key>} / {@code remove <key>} — edits the blocklist, saves and reloads.</li>
  *   <li>{@code cap <key> <level|off>} — sets/clears a level cap, saves and reloads.</li>
  *   <li>{@code purge [player|all]} — cleans online inventories on demand (honours dry-run).</li>
@@ -72,7 +73,7 @@ public final class AntiEnchantsCommand implements TabExecutor {
                 }
             }
             case "list" -> list(sender);
-            case "check" -> check(sender);
+            case "check" -> check(sender, args.length >= 2 ? args[1] : null);
             case "add" -> {
                 if (args.length < 2) {
                     sender.sendMessage(Component.text("Usage: /antienchants add <enchantment>", NamedTextColor.YELLOW));
@@ -145,9 +146,20 @@ public final class AntiEnchantsCommand implements TabExecutor {
         }
     }
 
-    private void check(@NotNull CommandSender sender) {
+    private void check(@NotNull CommandSender sender, @Nullable String targetName) {
+        if (targetName != null) {
+            final Player target = plugin.getServer().getPlayerExact(targetName);
+            if (target == null) {
+                sender.sendMessage(Component.text("Player '" + targetName + "' is not online.",
+                        NamedTextColor.RED));
+                return;
+            }
+            checkInventory(sender, target);
+            return;
+        }
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(Component.text("Only players can check their held item.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("From console, use /antienchants check <player>.",
+                    NamedTextColor.RED));
             return;
         }
         final ItemStack item = player.getInventory().getItemInMainHand();
@@ -175,6 +187,39 @@ public final class AntiEnchantsCommand implements TabExecutor {
         } else {
             sender.sendMessage(Component.text("Violations on this item:", NamedTextColor.GOLD));
             findings.forEach(sender::sendMessage);
+        }
+    }
+
+    /** Scans every slot of a player's inventory (armour + offhand included) and reports violations. */
+    private void checkInventory(@NotNull CommandSender sender, @NotNull Player target) {
+        final AntiEnchantsConfig config = plugin.config();
+        final String world = target.getWorld().getName();
+        int flagged = 0;
+        for (ItemStack item : target.getInventory().getContents()) {
+            if (item == null || item.isEmpty() || !item.hasItemMeta() || config.isExemptItem(item.getType())) {
+                continue;
+            }
+            final List<Component> findings = new ArrayList<>();
+            final ItemMeta meta = item.getItemMeta();
+            collectFindings(meta.getEnchants(), config, world, findings);
+            if (meta instanceof EnchantmentStorageMeta storage) {
+                collectFindings(storage.getStoredEnchants(), config, world, findings);
+            }
+            if (findings.isEmpty()) {
+                continue;
+            }
+            if (flagged == 0) {
+                sender.sendMessage(Component.text("Violations in " + target.getName() + "'s inventory:",
+                        NamedTextColor.GOLD));
+            }
+            flagged++;
+            sender.sendMessage(Component.text("  " + item.getType().name()
+                    + (item.getAmount() > 1 ? " x" + item.getAmount() : ""), NamedTextColor.AQUA));
+            findings.forEach(line -> sender.sendMessage(Component.text("  ").append(line)));
+        }
+        if (flagged == 0) {
+            sender.sendMessage(Component.text(target.getName()
+                    + "'s inventory is clean — nothing banned or over the cap.", NamedTextColor.GREEN));
         }
     }
 
@@ -346,6 +391,11 @@ public final class AntiEnchantsCommand implements TabExecutor {
         if (args.length == 2 && args[0].equalsIgnoreCase("purge")) {
             final List<String> options = new ArrayList<>();
             options.add("all");
+            plugin.getServer().getOnlinePlayers().forEach(p -> options.add(p.getName()));
+            return filterPrefix(options, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("check")) {
+            final List<String> options = new ArrayList<>();
             plugin.getServer().getOnlinePlayers().forEach(p -> options.add(p.getName()));
             return filterPrefix(options, args[1]);
         }

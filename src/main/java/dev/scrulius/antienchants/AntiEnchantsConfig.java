@@ -53,6 +53,7 @@ public final class AntiEnchantsConfig {
     private boolean blockAtTable;
     private boolean blockAtAnvil;
     private boolean blockAtGrindstone;
+    private boolean blockAtSmithing;
     private Set<String> bannedKeys = Set.of();
 
     // Per-world extra rules, already merged with the global ones (world name lowercase -> rules)
@@ -116,6 +117,7 @@ public final class AntiEnchantsConfig {
         blockAtTable = c.getBoolean("banned-enchantments.block-at-table", true);
         blockAtAnvil = c.getBoolean("banned-enchantments.block-at-anvil", true);
         blockAtGrindstone = c.getBoolean("banned-enchantments.block-at-grindstone", true);
+        blockAtSmithing = c.getBoolean("banned-enchantments.block-at-smithing", true);
 
         final Set<String> keys = new HashSet<>();
         for (String raw : c.getStringList("banned-enchantments.keys")) {
@@ -430,6 +432,7 @@ public final class AntiEnchantsConfig {
     public boolean isBlockAtTable() { return blockAtTable; }
     public boolean isBlockAtAnvil() { return blockAtAnvil; }
     public boolean isBlockAtGrindstone() { return blockAtGrindstone; }
+    public boolean isBlockAtSmithing() { return blockAtSmithing; }
     public boolean isCompensationEnabled() { return compensationEnabled; }
     public boolean isAuditEnabled() { return auditEnabled; }
     public int getAuditMaxFileKb() { return auditMaxFileKb; }

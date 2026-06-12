@@ -55,12 +55,15 @@ banned-enchantments:
   strip-mob-drops: true
 
   # Remove banned enchantments (and apply level caps) at the source: the
-  # enchanting table result and the anvil/grindstone result previews. Better
-  # than letting the player pay and purging the item afterwards. The grindstone
-  # case matters mainly for curses (the grindstone keeps them on the output).
+  # enchanting table result and the anvil/grindstone/smithing-table result
+  # previews. Better than letting the player pay and purging the item
+  # afterwards. The grindstone case matters mainly for curses (the grindstone
+  # keeps them on the output); the smithing case covers netherite upgrades,
+  # which carry every enchantment onto the upgraded item.
   block-at-table: true
   block-at-anvil: true
   block-at-grindstone: true
+  block-at-smithing: true
 
 # Level caps: instead of banning outright, cap an enchantment at a maximum
 # level — anything above is automatically reduced (e.g. with 'sharpness: 3',

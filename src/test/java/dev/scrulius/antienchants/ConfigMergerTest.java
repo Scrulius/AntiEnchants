@@ -148,6 +148,7 @@ class ConfigMergerTest {
         // OR silently leave it enforcing when the admin expected a preview — off is the only safe default).
         assertTrue(user.contains("dry-run", true));
         assertFalse(user.getBoolean("dry-run", true));
+        assertTrue(user.getBoolean("banned-enchantments.block-at-smithing"));
 
         // Nothing in the bundled defaults is missing from the merged config.
         for (String path : defaults.getKeys(true)) {

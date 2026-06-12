@@ -4,9 +4,9 @@
 Set [ICODE]dry-run: true[/ICODE] and AntiEnchants switches to observe-only: it detects every violation exactly as if it were live, logs what it [I]would[/I] strip or cap (console, plus [ICODE]strips.log[/ICODE] if the audit log is on) — and doesn't touch a single item.
 [LIST]
 [*]Thinking about banning Fortune? Turn dry-run on, watch the logs for a day, and know precisely how many players are affected and what they'd lose — before anyone loses anything.
-[*]Everything stands down, not just the strips: enchanting tables, anvils, grindstones, villager trades and mending all behave like vanilla while you observe.
+[*]Everything stands down, not just the strips: enchanting tables, anvils, grindstones, smithing tables, villager trades and mending all behave like vanilla while you observe.
 [*]Repeated findings are deduplicated, so a player clicking around their inventory doesn't flood your console with the same report.
-[*]A loud warning on startup, reload and [ICODE]/ae list[/ICODE] makes sure you never forget it's on.
+[*]Impossible to forget: a loud warning on startup and reload, a banner in [ICODE]/ae list[/ICODE], and joining admins get reminded in chat that the plugin is observing, not enforcing.
 [/LIST]
 
 [SIZE=4][COLOR=#9B59B6][B]/ae purge — apply the rules NOW[/B][/COLOR][/SIZE]
@@ -19,10 +19,16 @@ Until now, a new rule reached each player whenever they next joined or clicked t
 
 The two are built to be used together: preview with dry-run, tune with [ICODE]/ae add[/ICODE]/[ICODE]remove[/ICODE]/[ICODE]cap[/ICODE], flip dry-run off, then [ICODE]/ae purge all[/ICODE] to apply the cleanup in one go — on your schedule, not the plugin's.
 
+[SIZE=4][COLOR=#9B59B6][B]A hole plugged and a sharper magnifying glass[/B][/COLOR][/SIZE]
+[LIST]
+[*][B]Smithing table covered[/B] — netherite upgrades carry every enchantment onto the result, so a banned or over-cap enchant could ride a diamond-to-netherite upgrade straight past the anvil block. [ICODE]block-at-smithing[/ICODE] (on by default) cleans the smithing preview like the anvil and grindstone ones.
+[*][ICODE]/ae check <player>[/ICODE] — point the inspector at someone else: every slot of their inventory (armour and offhand included), each violating item listed with exactly what's banned or over the cap. Works from console — settle a report without logging in.
+[/LIST]
+
 [SIZE=4][COLOR=#9B59B6][B]Housekeeping[/B][/COLOR][/SIZE]
 [LIST]
-[*]The new [ICODE]dry-run[/ICODE] option is added to your existing config automatically (off by default, comments included); your edited values stay untouched. Upgrade path covered by automated tests, as always.
-[*][ICODE]/ae purge[/ICODE] tab-completes online player names, and dry-run status is shown in [ICODE]/ae list[/ICODE] and after [ICODE]/ae reload[/ICODE].
+[*]The new options ([ICODE]dry-run[/ICODE], [ICODE]block-at-smithing[/ICODE]) are added to your existing config automatically, comments included; your edited values stay untouched. Upgrade path covered by automated tests, as always.
+[*][ICODE]/ae purge[/ICODE] and [ICODE]/ae check[/ICODE] tab-complete online player names, and dry-run status is shown in [ICODE]/ae list[/ICODE] and after [ICODE]/ae reload[/ICODE].
 [/LIST]
 
 No breaking changes: drop the jar in and your old config keeps working — and keeps enforcing, exactly as before.

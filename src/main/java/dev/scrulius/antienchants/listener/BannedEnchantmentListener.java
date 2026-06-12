@@ -5,6 +5,8 @@ import dev.scrulius.antienchants.AntiEnchantsConfig;
 import dev.scrulius.antienchants.AntiEnchantsPlugin;
 import dev.scrulius.antienchants.EnchantStripper;
 import dev.scrulius.antienchants.EnchantStripper.StripResult;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.GameMode;
 import org.bukkit.enchantments.Enchantment;
@@ -21,6 +23,7 @@ import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareGrindstoneEvent;
+import org.bukkit.event.inventory.PrepareSmithingEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerItemMendEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -205,6 +208,12 @@ public final class BannedEnchantmentListener implements Listener {
     public void onJoin(@NotNull PlayerJoinEvent event) {
         if (active() && config().isPurgeInventories() && !worldDisabled(event.getPlayer())) {
             purgeFor(event.getPlayer(), null, "JOIN");
+        }
+        // Remind joining admins that dry-run is on, so it's never left enabled by accident.
+        if (config().isDryRun() && event.getPlayer().hasPermission("antienchants.admin")) {
+            event.getPlayer().sendMessage(Component.text(
+                    "AntiEnchants is in DRY-RUN mode — violations are only logged, nothing is enforced.",
+                    NamedTextColor.YELLOW));
         }
     }
 
@@ -408,6 +417,14 @@ public final class BannedEnchantmentListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPrepareGrindstone(@NotNull PrepareGrindstoneEvent event) {
         if (active() && config().isBlockAtGrindstone()) {
+            stripResultPreview(event.getView().getPlayer() instanceof Player player ? player : null, event);
+        }
+    }
+
+    /** And the smithing table (netherite upgrades carry every enchantment onto the result). */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPrepareSmithing(@NotNull PrepareSmithingEvent event) {
+        if (active() && config().isBlockAtSmithing()) {
             stripResultPreview(event.getView().getPlayer() instanceof Player player ? player : null, event);
         }
     }
